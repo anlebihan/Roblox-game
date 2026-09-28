@@ -9,6 +9,7 @@
 | `UdinDinDinDun.glb` | Udin Din Din Dun |
 | `DragonCannelloni.glb` | Dragon Cannelloni |
 | `CapuccinoAssassino.glb` | Capuccino Assassino |
+| `KarkerkarKurkur.glb` | Karkerkar Kurkur |
 
 Chaque modèle a été converti en `.glb`, réduit sous 20 000 triangles (limite Roblox) avec texture 1024×1024 max.
 

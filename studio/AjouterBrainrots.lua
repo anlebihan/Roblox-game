@@ -19,6 +19,7 @@ local NOMS = {
 	"UdinDinDinDun",
 	"DragonCannelloni",
 	"CapuccinoAssassino",
+	"KarkerkarKurkur",
 }
 
 -- Mets true pour un brainrot qui regarde dans le mauvais sens après l'import
