@@ -1,9 +1,12 @@
 --[[ À COLLER DANS LA BARRE DE COMMANDES de Studio (Affichage > Barre de commandes), puis Entrée.
      Avant : 1) ReplicatedStorage.Couteaux.Config existe (ModuleScript)
              2) les 15 fichiers .glb du dossier « modeles » sont importés (Accueil > Importer 3D).
-     Ce script transforme chaque modèle importé en Tool prêt à l'emploi, rangé dans
-     ReplicatedStorage.Couteaux.Outils : couleurs + Neon, soudures, « Handle », points de traînée.
-     Il ne supprime rien : s'il trouve un couteau déjà installé, il le saute.
+     Chaque couteau importé contient 2 MeshParts :
+        <Id>_Body_tex        le couteau texturé (texture tirée de l'image de référence)
+        <Id>_Outline_outline le contour noir cartoon
+     Ce script en fait un Tool prêt à l'emploi dans ReplicatedStorage.Couteaux.Outils :
+     soudures, « Handle », prise en main au milieu du manche, points de traînée, zone de la lame (effets).
+     Il ne supprime rien : un couteau déjà installé est sauté.
 ]]
 local RS = game:GetService("ReplicatedStorage")
 local dossier = RS:FindFirstChild("Couteaux")
@@ -13,7 +16,28 @@ local outils = dossier:FindFirstChild("Outils") or Instance.new("Folder")
 outils.Name = "Outils"
 outils.Parent = dossier
 
--- toutes les pièces importées : <Id>_<Partie>_<couleur>
+-- Mesures faites à la création (studs, depuis le bas du manche) :
+--   long = longueur totale, garde = hauteur de la garde (début de la lame)
+local MESURES = {
+	PouleBase = { long = 2.80, garde = 1.12 },
+	PouleRoyal = { long = 2.85, garde = 1.05 },
+	PoulePlume = { long = 2.90, garde = 0.87 },
+	PouleElectrique = { long = 2.85, garde = 0.97 },
+	PouleGeant = { long = 3.10, garde = 1.12 },
+	RenardBase = { long = 2.80, garde = 1.20 },
+	RenardFurtif = { long = 2.80, garde = 1.20 },
+	RenardSpectre = { long = 2.80, garde = 1.12 },
+	RenardLegendaire = { long = 2.85, garde = 1.14 },
+	RenardOrigami = { long = 2.80, garde = 1.20 },
+	ViperBase = { long = 2.80, garde = 1.26 },
+	ViperToxique = { long = 2.80, garde = 1.18 },
+	ViperSerpent = { long = 2.90, garde = 1.10 },
+	ViperVenin = { long = 2.80, garde = 1.18 },
+	ViperRoyal = { long = 2.85, garde = 1.43 },
+}
+local TAILLE = Config.Taille or 1 -- Config.Taille = 1.3 pour des couteaux 30 % plus grands
+
+-- toutes les pièces importées : <Id>_<Partie>_<cle>
 local parId = {}
 for _, p in ipairs(workspace:GetDescendants()) do
 	if p:IsA("MeshPart") then
@@ -26,43 +50,40 @@ for _, p in ipairs(workspace:GetDescendants()) do
 	end
 end
 
--- longueur totale de chaque couteau (studs), mesurée dans Blender
-local LONGUEUR = {
-	PouleBase = 2.72, PouleRoyal = 2.85, PoulePlume = 3.01, PouleElectrique = 2.8, PouleGeant = 2.96,
-	RenardBase = 2.7, RenardFurtif = 2.81, RenardSpectre = 2.69, RenardLegendaire = 2.85, RenardOrigami = 2.7,
-	ViperBase = 2.81, ViperToxique = 2.8, ViperSerpent = 2.91, ViperVenin = 2.8, ViperRoyal = 2.85,
-}
-local TAILLE = Config.Taille or 1 -- Config.Taille = 1.3 pour des couteaux 30 % plus grands
-
--- remet le couteau à la bonne taille si Studio l'a importé dans une autre unité
-local function mettreAEchelle(id, pieces)
-	local yMin, yMax, centre = math.huge, -math.huge, Vector3.zero
-	for _, p in ipairs(pieces) do
-		if not string.find(p.Name, "_outline$") then
-			yMin = math.min(yMin, p.Position.Y - p.Size.Y / 2)
-			yMax = math.max(yMax, p.Position.Y + p.Size.Y / 2)
-		end
-		centre += p.Position
-	end
-	centre /= #pieces
-	local f = (LONGUEUR[id] or 2.8) * TAILLE / math.max(yMax - yMin, 0.01)
-	if math.abs(f - 1) < 0.03 then return end
-	for _, p in ipairs(pieces) do
-		local pos = centre + (p.Position - centre) * f
-		p.Size = p.Size * f
-		p.CFrame = p.CFrame - p.Position + pos
-	end
-	print(("[Couteaux] %s remis à l'échelle (x%.2f)"):format(id, f))
+local function boite(p)
+	return p.Position.Y - p.Size.Y / 2, p.Position.Y + p.Size.Y / 2
 end
 
 local installes, manquants = 0, {}
 for id, def in pairs(Config.Couteaux) do
 	local pieces = parId[id]
+	local mes = MESURES[id] or { long = 2.8, garde = 1.1 }
 	if outils:FindFirstChild(id) then
 		print("[Couteaux] déjà installé, ignoré :", id)
 	elseif not pieces then
 		table.insert(manquants, id)
 	else
+		local corps, contour
+		for _, p in ipairs(pieces) do
+			if string.find(p.Name, "_outline$") then contour = p else corps = corps or p end
+		end
+		local ancienParent = corps.Parent
+
+		-- taille : remet à la bonne échelle si Studio a importé dans une autre unité
+		local bas, haut = boite(corps)
+		local f = mes.long * TAILLE / math.max(haut - bas, 0.01)
+		if math.abs(f - 1) > 0.03 then
+			local c = corps.Position
+			for _, p in ipairs(pieces) do
+				local pos = c + (p.Position - c) * f
+				p.Size = p.Size * f
+				p.CFrame = p.CFrame - p.Position + pos
+			end
+			print(("[Couteaux] %s remis à l'échelle (x%.2f)"):format(id, f))
+			bas, haut = boite(corps)
+		end
+		local k = (haut - bas) / mes.long             -- studs réels / studs mesurés
+
 		local tool = Instance.new("Tool")
 		tool.Name = id
 		tool.ToolTip = def.Nom
@@ -71,62 +92,53 @@ for id, def in pairs(Config.Couteaux) do
 		tool:SetAttribute("CouteauId", id)
 		tool:SetAttribute("Equipe", def.Equipe)
 
-		mettreAEchelle(id, pieces)
-		local handle, volMax = nil, 0
-		local yMin, yMax, centreLame = math.huge, -math.huge, Vector3.zero
-		local nLame = 0
-		local ancienParent = pieces[1].Parent
 		for _, p in ipairs(pieces) do
-			local reste = string.sub(p.Name, #id + 2)
-			local partie, cle = string.match(reste, "^([^_]+)_(.+)$")
+			local cle = string.match(p.Name, "_([%w]+)$")
 			local pal = cle and Config.Palette[cle]
-			for _, sa in ipairs(p:GetChildren()) do
-				if sa:IsA("SurfaceAppearance") then sa:Destroy() end -- import brut : on garde nos couleurs
-			end
-			if pal then
-				p.Color = pal[1]
-				p.Material = pal[2]
-				p.Reflectance = pal[3] or 0
+			if pal then -- pièce unie (le contour) : couleur de la palette
+				p.Color, p.Material, p.Reflectance = pal[1], pal[2], pal[3] or 0
 			end
 			p.Anchored = false
 			p.CanCollide, p.CanTouch, p.CanQuery = false, false, false
 			p.Massless = true
-			p.CastShadow = (cle ~= "outline")
-			p.DoubleSided = false
-			if partie == "Handle" then
-				local v = p.Size.X * p.Size.Y * p.Size.Z
-				if v > volMax then handle, volMax = p, v end
-			elseif partie == "Blade" then
-				yMin = math.min(yMin, p.Position.Y - p.Size.Y / 2)
-				yMax = math.max(yMax, p.Position.Y + p.Size.Y / 2)
-				centreLame += p.Position
-				nLame += 1
-			end
-		end
-		handle = handle or pieces[1]
-		for _, p in ipairs(pieces) do
+			p.CastShadow = (p ~= contour)
 			p.Parent = tool
-			if p ~= handle then
+			if p ~= corps then
 				local w = Instance.new("WeldConstraint")
-				w.Part0, w.Part1 = handle, p
+				w.Part0, w.Part1 = corps, p
 				w.Parent = p
 			end
 		end
-		handle.Name = "Handle"
+		corps.Name = "Handle"
 
-		-- points de la traînée (base et pointe de la lame)
-		if nLame > 0 then
-			centreLame /= nLame
-			local base = Instance.new("Attachment")
-			base.Name = "LameBase"
-			base.Parent = handle
-			base.WorldPosition = Vector3.new(centreLame.X, yMin + 0.15, centreLame.Z)
-			local pointe = Instance.new("Attachment")
-			pointe.Name = "LamePointe"
-			pointe.Parent = handle
-			pointe.WorldPosition = Vector3.new(centreLame.X, yMax - 0.05, centreLame.Z)
+		local yGarde = bas + mes.garde * k
+		local function attache(nom, y)
+			local a = Instance.new("Attachment")
+			a.Name = nom
+			a.Parent = corps
+			a.WorldPosition = Vector3.new(corps.Position.X, y, corps.Position.Z)
+			return a
 		end
-		tool.Grip = Config.Grip
+		attache("LameBase", yGarde + 0.12 * k)
+		attache("LamePointe", haut - 0.08 * k)
+		attache("Main", (bas + yGarde) / 2)
+
+		-- zone invisible couvrant la lame : sert d'émetteur pour les auras
+		local zone = Instance.new("Part")
+		zone.Name = "ZoneLame"
+		zone.Transparency = 1
+		zone.CanCollide, zone.CanTouch, zone.CanQuery, zone.Anchored = false, false, false, false
+		zone.Massless = true
+		zone.Size = Vector3.new(corps.Size.X * 0.6, haut - yGarde, math.max(corps.Size.Z * 0.5, 0.1))
+		zone.CFrame = CFrame.new(corps.Position.X, (haut + yGarde) / 2, corps.Position.Z)
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = corps, zone
+		w.Parent = zone
+		zone.Parent = tool
+
+		-- la main tient le milieu du manche
+		local main = corps.CFrame:PointToObjectSpace(Vector3.new(corps.Position.X, (bas + yGarde) / 2, corps.Position.Z))
+		tool.Grip = CFrame.new(main) * Config.Grip
 		tool.Parent = outils
 		installes += 1
 		if ancienParent and ancienParent ~= workspace and #ancienParent:GetDescendants() == 0 then

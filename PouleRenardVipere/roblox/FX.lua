@@ -164,6 +164,7 @@ local function infos(tool)
 end
 
 local function plusGrandeLame(tool)
+	if tool:FindFirstChild("ZoneLame") then return tool.ZoneLame end
 	local best, vol = nil, 0
 	for _, p in ipairs(tool:GetDescendants()) do
 		if p:IsA("BasePart") and string.find(p.Name, "_Blade_") then

@@ -1,15 +1,19 @@
 # 🔪 Couteaux — Poule Renard Vipère
 
-15 couteaux en 3D (5 par équipe), avec effets VFX, sons SFX, combo d'attaque, esquive et vérification côté serveur.
+15 couteaux en 3D (5 par équipe) **tirés directement de l'image de référence** (`apercu/reference.webp`) : silhouette exacte, texture = l'image elle-même, relief 3D (lame fine biseautée, manche arrondi), contour noir cartoon. Avec effets VFX, sons SFX, combo d'attaque, esquive et vérification côté serveur.
 
 ![Aperçu](apercu/planche_couteaux.png)
+![Vue de biais](apercu/planche_couteaux_3-4.png)
 
 ## Contenu du dossier
 | Fichier | Rôle |
 |---|---|
-| `modeles/*.glb` | Les 15 couteaux **déjà prêts** à importer dans Studio (pas besoin de Blender). |
-| `blender/couteaux.py` | Script Blender qui recrée les 15 couteaux (pour les modifier puis réexporter). |
-| `blender/apercu.py` | Rend la planche d'aperçu. |
+| `modeles/*.glb` | Les 15 couteaux **déjà prêts** à importer dans Studio (texture incluse dans le fichier). |
+| `modeles/textures/` | Les textures en PNG (et le masque de détourage de chaque couteau). |
+| `modeles/infos.json` | Longueur et hauteur de garde de chaque couteau (studs). |
+| `outils/couteaux_depuis_image.py` | Le générateur : image → détourage → modèle 3D texturé → .glb (Blender en Python). |
+| `outils/masques/` | Détourages IA (BiRefNet) de chaque couteau. |
+| `outils/apercu_glb.py` | Rend une planche d'aperçu des .glb. |
 | `roblox/Config.lua` | ModuleScript `ReplicatedStorage.Couteaux.Config` : couleurs, combat, effets, sons, animations. |
 | `roblox/FX.lua` | ModuleScript `ReplicatedStorage.Couteaux.FX` : tous les effets visuels et sonores. |
 | `roblox/CouteauxServeur.lua` | Script `ServerScriptService.CouteauxServeur`. |
@@ -19,7 +23,7 @@
 
 ## Installation dans Studio (5 minutes)
 1. Dans **ReplicatedStorage**, créer un dossier `Couteaux`. Dedans, deux **ModuleScripts** : `Config` (coller `roblox/Config.lua`) et `FX` (coller `roblox/FX.lua`).
-2. **Importer 3D** (Accueil > Importer 3D) les 15 fichiers de `modeles/`, en gardant les options par défaut.
+2. **Importer 3D** (Accueil > Importer 3D) les 15 fichiers `.glb` de `modeles/`, options par défaut (la texture est incluse).
 3. **Barre de commandes** : coller `roblox/InstallerCouteaux.lua` puis Entrée. Les couteaux deviennent des Tools dans `ReplicatedStorage.Couteaux.Outils`. Rien n'est supprimé : les modèles importés vides restent dans le Workspace, tu peux les effacer toi-même.
 4. **ServerScriptService** : Script `CouteauxServeur`. **StarterPlayer > StarterPlayerScripts** : LocalScript `CouteauxClient`.
 5. **Play** (au moins 2 joueurs : Test > Serveur local, 2 joueurs) pour vérifier.
@@ -40,6 +44,12 @@
 - **Attributs respectés** : `EnPrison = true` sur le Player (ne peut ni attaquer ni être touché), `Invincible = true` sur le Character.
 - **Choisir un couteau** : `player:SetAttribute("Couteau", "PouleRoyal")`, puis le prochain respawn le donne. Le couteau doit être de la bonne équipe.
 - **Si le jeu donne déjà les armes** : `Config.Combat.DonnerCouteau = false`.
+
+## Refaire les modèles avec de meilleures images
+Plus l'image est grande, plus la texture est nette. Ta planche donne environ 130 × 330 pixels par couteau.
+Avec une image par couteau (environ 1000 px de haut, fond noir uni), on refait tout en une commande :
+`python outils/couteaux_depuis_image.py <image> outils/masques <sortie>`.
+Il faut régler `BOITES` (position du couteau dans l'image) et refaire le masque avec rembg (`birefnet-general`).
 
 ## Effets de chaque couteau
 | Couteau | Aura | Impact |

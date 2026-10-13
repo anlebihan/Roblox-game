@@ -1,0 +1,107 @@
+{
+ "PouleBase": {
+  "echelle": 0.0021806853582554517,
+  "garde": 1.12,
+  "pointe": 2.8,
+  "bas": 0.0,
+  "triangles": 7764
+ },
+ "PouleRoyal": {
+  "echelle": 0.002159090909090909,
+  "garde": 1.0545,
+  "pointe": 2.85,
+  "bas": 0.0,
+  "triangles": 7738
+ },
+ "PoulePlume": {
+  "echelle": 0.0021386430678466076,
+  "garde": 0.8700000000000001,
+  "pointe": 2.9,
+  "bas": 0.0,
+  "triangles": 8496
+ },
+ "PouleElectrique": {
+  "echelle": 0.002144469525959368,
+  "garde": 0.9690000000000001,
+  "pointe": 2.85,
+  "bas": 0.0,
+  "triangles": 8534
+ },
+ "PouleGeant": {
+  "echelle": 0.002442868400315209,
+  "garde": 1.116,
+  "pointe": 3.1,
+  "bas": 0.0,
+  "triangles": 12144
+ },
+ "RenardBase": {
+  "echelle": 0.00225624496373892,
+  "garde": 1.2040000000000002,
+  "pointe": 2.8,
+  "bas": 0.0,
+  "triangles": 6682
+ },
+ "RenardFurtif": {
+  "echelle": 0.0022526146419951727,
+  "garde": 1.204,
+  "pointe": 2.8,
+  "bas": 0.0,
+  "triangles": 6780
+ },
+ "RenardSpectre": {
+  "echelle": 0.002321724709784411,
+  "garde": 1.1199999999999999,
+  "pointe": 2.8,
+  "bas": 0.0,
+  "triangles": 7028
+ },
+ "RenardLegendaire": {
+  "echelle": 0.002249408050513023,
+  "garde": 1.1400000000000003,
+  "pointe": 2.85,
+  "bas": 0.0,
+  "triangles": 7414
+ },
+ "RenardOrigami": {
+  "echelle": 0.0023850085178875637,
+  "garde": 1.204,
+  "pointe": 2.8,
+  "bas": 0.0,
+  "triangles": 9060
+ },
+ "ViperBase": {
+  "echelle": 0.0022764227642276423,
+  "garde": 1.26,
+  "pointe": 2.8,
+  "bas": 0.0,
+  "triangles": 6924
+ },
+ "ViperToxique": {
+  "echelle": 0.002280130293159609,
+  "garde": 1.1760000000000002,
+  "pointe": 2.8,
+  "bas": 0.0,
+  "triangles": 7826
+ },
+ "ViperSerpent": {
+  "echelle": 0.0023015873015873015,
+  "garde": 1.1019999999999999,
+  "pointe": 2.9,
+  "bas": 0.0,
+  "triangles": 6310
+ },
+ "ViperVenin": {
+  "echelle": 0.002304526748971193,
+  "garde": 1.176,
+  "pointe": 2.8,
+  "bas": 0.0,
+  "triangles": 6230
+ },
+ "ViperRoyal": {
+  "echelle": 0.0023730224812656122,
+  "garde": 1.425,
+  "pointe": 2.85,
+  "bas": 0.0,
+  "triangles": 6656
+ }
+}
