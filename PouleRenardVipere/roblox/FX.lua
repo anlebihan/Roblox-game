@@ -1,0 +1,416 @@
+--[[ ModuleScript : ReplicatedStorage.Couteaux.FX   (utilisé côté CLIENT uniquement)
+     Effets visuels (VFX) et sonores (SFX) des couteaux :
+       FX.Equiper(tool)              aura, lueur, traînée prête, son + éclat de dégainage
+       FX.Coup(tool, combo)          traînée lumineuse + son de coup (combo 1-2-3)
+       FX.Impact(pos, id, victime)   explosion propre à chaque couteau + son + flash sur la victime
+       FX.Esquive(character, equipe) images fantômes + nuage de poussière + son
+       FX.Secousse(force, duree)     secousse de caméra
+]]
+local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Config = require(script.Parent.Config)
+
+local FX = {}
+
+local TEX = {
+	etincelles = "rbxasset://textures/particles/sparkles_main.dds",
+	feu = "rbxasset://textures/particles/fire_main.dds",
+	fumee = "rbxasset://textures/particles/smoke_main.dds",
+}
+
+local function NS(a, b) return NumberSequence.new(a, b) end
+local function NR(a, b) return NumberRange.new(a, b or a) end
+local function CS(a, b) return ColorSequence.new(a, b or a) end
+
+local function tween(obj, t, props, style)
+	local tw = TweenService:Create(obj, TweenInfo.new(t, style or Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props)
+	tw:Play()
+	return tw
+end
+
+-- point invisible dans le monde pour accrocher des particules
+local function pointMonde(pos, duree)
+	local a = Instance.new("Attachment")
+	a.WorldPosition = pos
+	a.Parent = workspace.Terrain
+	Debris:AddItem(a, duree or 3)
+	return a
+end
+
+local function son(id, parent, volume, hauteur)
+	if not id or id == "" then return end
+	local s = Instance.new("Sound")
+	s.SoundId = id
+	s.Volume = volume or 0.6
+	s.PlaybackSpeed = (hauteur or 1) * (0.94 + math.random() * 0.12)
+	s.RollOffMaxDistance = 80
+	s.Parent = parent
+	s:Play()
+	Debris:AddItem(s, 4)
+	return s
+end
+
+local function sonA(id, pos, volume, hauteur)
+	son(id, pointMonde(pos, 4), volume, hauteur)
+end
+
+-- émetteur générique
+local function emetteur(parent, opts)
+	local e = Instance.new("ParticleEmitter")
+	e.Texture = TEX[opts.tex or "etincelles"]
+	e.Color = opts.couleur2 and CS(opts.couleur, opts.couleur2) or CS(opts.couleur or Color3.new(1, 1, 1))
+	e.LightEmission = opts.lumiere or 0.8
+	e.Size = opts.taille or NS(0.4, 0)
+	e.Transparency = opts.transparence or NS(0, 1)
+	e.Lifetime = opts.vie or NR(0.4, 0.8)
+	e.Speed = opts.vitesse or NR(6, 14)
+	e.SpreadAngle = opts.ecart or Vector2.new(180, 180)
+	e.Acceleration = opts.acceleration or Vector3.zero
+	e.Drag = opts.frein or 3
+	e.Rotation = NR(0, 360)
+	e.RotSpeed = opts.rotation or NR(-180, 180)
+	e.Rate = opts.debit or 0
+	e.ZOffset = opts.zoffset or 0.5
+	e.LockedToPart = opts.colle or false
+	e.Enabled = (opts.debit or 0) > 0
+	e.Parent = parent
+	return e
+end
+
+local function rafale(pos, opts, n)
+	local a = pointMonde(pos, 3)
+	local e = emetteur(a, opts)
+	e:Emit(n or 20)
+	return e
+end
+
+-- anneau néon qui grandit (onde de choc)
+local function onde(pos, couleur, taille, duree)
+	local p = Instance.new("Part")
+	p.Shape = Enum.PartType.Cylinder
+	p.Anchored, p.CanCollide, p.CanQuery, p.CanTouch, p.CastShadow = true, false, false, false, false
+	p.Material = Enum.Material.Neon
+	p.Color = couleur
+	p.Transparency = 0.15
+	p.Size = Vector3.new(0.15, 1, 1)
+	p.CFrame = CFrame.new(pos) * CFrame.Angles(0, 0, math.rad(90))
+	p.Parent = workspace
+	tween(p, duree or 0.35, { Size = Vector3.new(0.05, taille or 9, taille or 9), Transparency = 1 })
+	Debris:AddItem(p, (duree or 0.35) + 0.1)
+end
+
+-- éclair en zigzag (néon)
+local function eclair(depart, arrivee, couleur)
+	local segments, pts = 5, { depart }
+	for i = 1, segments - 1 do
+		local p = depart:Lerp(arrivee, i / segments)
+		pts[#pts + 1] = p + Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 1.6
+	end
+	pts[#pts + 1] = arrivee
+	for i = 1, #pts - 1 do
+		local a, b = pts[i], pts[i + 1]
+		local p = Instance.new("Part")
+		p.Anchored, p.CanCollide, p.CanQuery, p.CanTouch, p.CastShadow = true, false, false, false, false
+		p.Material = Enum.Material.Neon
+		p.Color = couleur
+		p.Size = Vector3.new(0.14, 0.14, (b - a).Magnitude)
+		p.CFrame = CFrame.lookAt((a + b) / 2, b)
+		p.Parent = workspace
+		tween(p, 0.22, { Transparency = 1, Size = Vector3.new(0.02, 0.02, p.Size.Z) })
+		Debris:AddItem(p, 0.3)
+	end
+end
+
+-- éclats (origami) : petits triangles qui volent
+local function eclats(pos, couleurs, n)
+	for i = 1, n do
+		local w = Instance.new("WedgePart")
+		w.Anchored, w.CanCollide, w.CanQuery, w.CanTouch, w.CastShadow = true, false, false, false, false
+		w.Material = Enum.Material.Neon
+		w.Color = couleurs[(i % #couleurs) + 1]
+		w.Size = Vector3.new(0.05, 0.45, 0.45)
+		w.CFrame = CFrame.new(pos) * CFrame.Angles(math.random() * 6, math.random() * 6, math.random() * 6)
+		w.Parent = workspace
+		local dir = Vector3.new(math.random() - 0.5, math.random() * 0.8, math.random() - 0.5).Unit
+		tween(w, 0.55, {
+			CFrame = CFrame.new(pos + dir * (4 + math.random() * 3)) * CFrame.Angles(math.random() * 9, math.random() * 9, 0),
+			Transparency = 1,
+		}, Enum.EasingStyle.Quart)
+		Debris:AddItem(w, 0.6)
+	end
+end
+
+------------------------------------------------------------------ CAMÉRA
+local secousseForce, secousseFin = 0, 0
+RunService:BindToRenderStep("CouteauxSecousse", Enum.RenderPriority.Camera.Value + 1, function()
+	local reste = secousseFin - os.clock()
+	if reste <= 0 then return end
+	local f = secousseForce * math.clamp(reste * 4, 0, 1)
+	local cam = workspace.CurrentCamera
+	cam.CFrame = cam.CFrame * CFrame.Angles(
+		math.rad((math.random() - 0.5) * f * 2), math.rad((math.random() - 0.5) * f * 2), 0)
+end)
+
+function FX.Secousse(force, duree)
+	secousseForce = math.max(force or 0.4, secousseForce * 0.5)
+	secousseFin = os.clock() + (duree or 0.25)
+end
+
+------------------------------------------------------------------ OUTILS
+local function infos(tool)
+	local id = tool:GetAttribute("CouteauId")
+	return id, id and Config.Couteaux[id]
+end
+
+local function plusGrandeLame(tool)
+	local best, vol = nil, 0
+	for _, p in ipairs(tool:GetDescendants()) do
+		if p:IsA("BasePart") and string.find(p.Name, "_Blade_") then
+			local v = p.Size.X * p.Size.Y * p.Size.Z
+			if v > vol then best, vol = p, v end
+		end
+	end
+	return best or tool:FindFirstChild("Handle")
+end
+
+------------------------------------------------------------------ ÉQUIPER
+function FX.Equiper(tool)
+	local id, def = infos(tool)
+	local handle = tool:FindFirstChild("Handle")
+	if not def or not handle or tool:FindFirstChild("FX_Pret") then return end
+	local dossier = Instance.new("Folder")
+	dossier.Name = "FX_Pret"
+	dossier.Parent = tool
+
+	-- traînée
+	local a0, a1 = handle:FindFirstChild("LameBase"), handle:FindFirstChild("LamePointe")
+	if a0 and a1 and def.Trainee then
+		local tr = Instance.new("Trail")
+		tr.Name = "FX_Trainee"
+		tr.Attachment0, tr.Attachment1 = a0, a1
+		tr.Color = CS(def.Trainee[1], def.Trainee[2])
+		tr.Transparency = NS(0.05, 1)
+		tr.Lifetime = 0.2
+		tr.LightEmission = 0.7
+		tr.WidthScale = NS(def.Trainee[3] or 1, 0.2)
+		tr.MinLength = 0.05
+		tr.Enabled = false
+		tr.Parent = handle
+	end
+
+	-- aura permanente
+	local lame = plusGrandeLame(tool)
+	local aura = def.Aura
+	if aura and lame then
+		local t = aura.Type
+		local opts = { couleur = aura.Couleur, debit = aura.Debit or 6, colle = true, lumiere = 0.9 }
+		if t == "etincelles" then
+			opts.taille = NS(0.22, 0); opts.vie = NR(0.25, 0.5); opts.vitesse = NR(1, 3)
+		elseif t == "feu" then
+			opts.tex = "feu"; opts.taille = NS(0.45, 0.05); opts.vie = NR(0.3, 0.6); opts.vitesse = NR(1, 2)
+			opts.acceleration = Vector3.new(0, 6, 0); opts.colle = false
+		elseif t == "fumee" then
+			opts.tex = "fumee"; opts.lumiere = 0; opts.taille = NS(0.3, 0.9); opts.transparence = NS(0.55, 1)
+			opts.vie = NR(0.6, 1.1); opts.vitesse = NR(0.3, 1); opts.colle = false
+		elseif t == "plumes" then
+			opts.lumiere = 0.3; opts.taille = NS(0.25, 0.2); opts.vie = NR(1, 1.6); opts.vitesse = NR(0.5, 1.5)
+			opts.acceleration = Vector3.new(0, -2, 0); opts.rotation = NR(-90, 90); opts.colle = false
+		elseif t == "bulles" then
+			opts.taille = NS(0.18, 0.05); opts.vie = NR(0.6, 1); opts.vitesse = NR(0.5, 1.2)
+			opts.acceleration = Vector3.new(0, 4, 0); opts.colle = false
+		elseif t == "gouttes" then
+			opts.taille = NS(0.16, 0.06); opts.vie = NR(0.5, 0.8); opts.vitesse = NR(0, 0.3)
+			opts.acceleration = Vector3.new(0, -14, 0); opts.colle = false
+		end
+		local e = emetteur(lame, opts)
+		e.Name = "FX_Aura"
+	end
+
+	-- lueur
+	if def.Lumiere then
+		local l = Instance.new("PointLight")
+		l.Name = "FX_Lueur"
+		l.Color = def.Lumiere
+		l.Range = 7
+		l.Brightness = 1.4
+		l.Shadows = false
+		l.Parent = lame or handle
+		if def.Clignote then
+			task.spawn(function()
+				while l.Parent and tool.Parent do
+					l.Brightness = 0.6 + math.random() * 2
+					task.wait(0.05 + math.random() * 0.1)
+				end
+			end)
+		end
+	end
+
+	-- sons
+	for nom, idSon in pairs({ Coup = Config.Sons.Coup, Estoc = Config.Sons.Estoc }) do
+		local s = Instance.new("Sound")
+		s.Name = "FX_" .. nom
+		s.SoundId = idSon
+		s.Volume = 0.55
+		s.RollOffMaxDistance = 70
+		s.Parent = handle
+	end
+end
+
+-- appelé à chaque fois que le couteau est sorti (éclat + son)
+function FX.Degainer(tool)
+	FX.Equiper(tool)
+	local id, def = infos(tool)
+	local handle = tool:FindFirstChild("Handle")
+	if not def or not handle then return end
+	son(Config.Sons.Degainer, handle, 0.5, def.Hauteur)
+	local equipe = Config.Equipes[def.Equipe]
+	local e = emetteur(handle, { couleur = def.Trainee and def.Trainee[1] or Color3.new(1, 1, 1),
+		couleur2 = equipe and equipe.Couleur, taille = NS(0.3, 0), vie = NR(0.25, 0.45), vitesse = NR(4, 9) })
+	e:Emit(14)
+	Debris:AddItem(e, 1)
+end
+
+------------------------------------------------------------------ COUP
+function FX.Coup(tool, combo)
+	local id, def = infos(tool)
+	local handle = tool and tool:FindFirstChild("Handle")
+	if not def or not handle then return end
+	FX.Equiper(tool)
+	local tr = handle:FindFirstChild("FX_Trainee")
+	if tr then
+		tr.Enabled = true
+		task.delay(combo == 3 and 0.32 or 0.24, function() if tr.Parent then tr.Enabled = false end end)
+	end
+	local s = handle:FindFirstChild(combo == 3 and "FX_Estoc" or "FX_Coup")
+	if s then
+		s.PlaybackSpeed = (def.Hauteur or 1) * (combo == 2 and 1.12 or 1) * (0.95 + math.random() * 0.1)
+		s:Play()
+	end
+	if def.Impact == "eclair" then
+		local p = handle:FindFirstChild("LamePointe")
+		if p then rafale(p.WorldPosition, { couleur = Color3.fromRGB(255, 230, 60), taille = NS(0.25, 0), vie = NR(0.15, 0.3) }, 8) end
+	end
+end
+
+------------------------------------------------------------------ IMPACT
+local IMPACTS = {}
+
+IMPACTS.plumes = function(pos)
+	rafale(pos, { couleur = Color3.new(1, 1, 1), lumiere = 0.2, taille = NS(0.35, 0.25), vie = NR(0.8, 1.3),
+		vitesse = NR(8, 14), acceleration = Vector3.new(0, -6, 0), frein = 4 }, 14)
+	rafale(pos, { couleur = Color3.fromRGB(214, 40, 40), lumiere = 0.2, taille = NS(0.3, 0.2), vie = NR(0.8, 1.2),
+		vitesse = NR(6, 12), acceleration = Vector3.new(0, -6, 0), frein = 4 }, 8)
+end
+IMPACTS.etoiles = function(pos)
+	rafale(pos, { couleur = Color3.fromRGB(255, 220, 80), taille = NS(0.6, 0), vie = NR(0.4, 0.7), vitesse = NR(10, 18) }, 24)
+	onde(pos, Color3.fromRGB(255, 215, 70), 8)
+end
+IMPACTS.eclair = function(pos)
+	local jaune = Color3.fromRGB(255, 230, 60)
+	for _ = 1, 4 do
+		local dir = Vector3.new(math.random() - 0.5, math.random() * 0.6, math.random() - 0.5).Unit
+		eclair(pos, pos + dir * (4 + math.random() * 3), jaune)
+	end
+	rafale(pos, { couleur = jaune, couleur2 = Color3.new(1, 1, 1), taille = NS(0.35, 0), vie = NR(0.2, 0.4), vitesse = NR(14, 24) }, 26)
+	onde(pos, jaune, 7, 0.25)
+	sonA(Config.Sons.Electrique, pos, 0.7, 0.8)
+end
+IMPACTS.onde = function(pos)
+	onde(pos, Color3.fromRGB(255, 255, 255), 14, 0.45)
+	onde(pos, Color3.fromRGB(214, 40, 40), 10, 0.35)
+	rafale(pos - Vector3.new(0, 2, 0), { tex = "fumee", couleur = Color3.fromRGB(220, 210, 190), lumiere = 0,
+		taille = NS(1.2, 2.5), transparence = NS(0.3, 1), vie = NR(0.6, 0.9), vitesse = NR(10, 16), ecart = Vector2.new(5, 180) }, 16)
+end
+IMPACTS.eclat = function(pos)
+	rafale(pos, { couleur = Color3.fromRGB(255, 150, 40), couleur2 = Color3.fromRGB(255, 60, 0), taille = NS(0.45, 0),
+		vie = NR(0.3, 0.5), vitesse = NR(12, 20) }, 22)
+	onde(pos, Color3.fromRGB(255, 106, 0), 7)
+end
+IMPACTS.fumee = function(pos)
+	rafale(pos, { tex = "fumee", couleur = Color3.fromRGB(30, 26, 24), lumiere = 0, taille = NS(1, 2.2),
+		transparence = NS(0.2, 1), vie = NR(0.6, 1), vitesse = NR(4, 9) }, 14)
+	rafale(pos, { couleur = Color3.fromRGB(255, 106, 0), taille = NS(0.3, 0), vie = NR(0.3, 0.5), vitesse = NR(10, 16) }, 12)
+end
+IMPACTS.spectre = function(pos)
+	rafale(pos, { tex = "feu", couleur = Color3.fromRGB(255, 140, 40), couleur2 = Color3.fromRGB(255, 50, 0), taille = NS(1.2, 0),
+		vie = NR(0.4, 0.7), vitesse = NR(4, 10), acceleration = Vector3.new(0, 12, 0) }, 20)
+	onde(pos, Color3.fromRGB(255, 120, 30), 9, 0.4)
+end
+IMPACTS.flammes = function(pos)
+	rafale(pos, { tex = "feu", couleur = Color3.fromRGB(255, 210, 60), couleur2 = Color3.fromRGB(255, 60, 0), taille = NS(1.5, 0.2),
+		vie = NR(0.4, 0.8), vitesse = NR(8, 16), acceleration = Vector3.new(0, 10, 0) }, 30)
+	rafale(pos, { couleur = Color3.fromRGB(255, 200, 80), taille = NS(0.25, 0), vie = NR(0.6, 1), vitesse = NR(14, 22),
+		acceleration = Vector3.new(0, -10, 0), frein = 1 }, 16)
+	onde(pos, Color3.fromRGB(255, 110, 20), 10)
+end
+IMPACTS.origami = function(pos)
+	eclats(pos, { Color3.fromRGB(255, 106, 0), Color3.fromRGB(25, 25, 25), Color3.fromRGB(255, 170, 60) }, 14)
+	onde(pos, Color3.fromRGB(255, 106, 0), 8, 0.3)
+end
+IMPACTS.poison = function(pos, def)
+	local c = def and def.Trainee and def.Trainee[1] or Color3.fromRGB(124, 255, 46)
+	rafale(pos, { tex = "fumee", couleur = c, lumiere = 0.4, taille = NS(0.8, 2), transparence = NS(0.3, 1),
+		vie = NR(0.6, 1), vitesse = NR(3, 7) }, 14)
+	rafale(pos, { couleur = c, taille = NS(0.3, 0.1), vie = NR(0.5, 0.9), vitesse = NR(8, 14),
+		acceleration = Vector3.new(0, -25, 0), frein = 1 }, 16)
+	onde(pos, c, 7)
+end
+IMPACTS.couronne = function(pos)
+	local v = Color3.fromRGB(124, 255, 46)
+	rafale(pos, { couleur = v, couleur2 = Color3.fromRGB(255, 215, 70), taille = NS(0.7, 0), vie = NR(0.4, 0.8), vitesse = NR(12, 22) }, 30)
+	onde(pos, v, 12, 0.4)
+	onde(pos + Vector3.new(0, 0.6, 0), Color3.fromRGB(255, 215, 70), 8, 0.3)
+end
+
+function FX.Impact(pos, id, victime)
+	local def = Config.Couteaux[id]
+	if not def then return end
+	local f = IMPACTS[def.Impact] or IMPACTS.eclat
+	f(pos, def)
+	sonA(Config.Sons.Impact, pos, 0.8, (def.Hauteur or 1) * 0.8)
+	-- flash blanc sur la victime
+	if victime and victime.Parent then
+		local h = Instance.new("Highlight")
+		h.FillColor = Color3.new(1, 1, 1)
+		h.FillTransparency = 0.2
+		h.OutlineTransparency = 1
+		h.DepthMode = Enum.HighlightDepthMode.Occluded
+		h.Parent = victime
+		tween(h, 0.25, { FillTransparency = 1 })
+		Debris:AddItem(h, 0.3)
+	end
+end
+
+------------------------------------------------------------------ ESQUIVE
+function FX.Esquive(character, equipe)
+	if not character then return end
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+	local couleur = (Config.Equipes[equipe or ""] or {}).Couleur or Color3.new(1, 1, 1)
+	sonA(Config.Sons.Esquive, root.Position, 0.5, 1.45)
+	rafale(root.Position - Vector3.new(0, 2.6, 0), { tex = "fumee", couleur = Color3.fromRGB(230, 225, 215), lumiere = 0,
+		taille = NS(0.8, 1.6), transparence = NS(0.4, 1), vie = NR(0.4, 0.6), vitesse = NR(4, 8), ecart = Vector2.new(5, 180) }, 10)
+	-- images fantômes
+	task.spawn(function()
+		for i = 1, 4 do
+			for _, p in ipairs(character:GetChildren()) do
+				if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" and p.Transparency < 1 then
+					local g = p:Clone()
+					g:ClearAllChildren()
+					g.Anchored, g.CanCollide, g.CanQuery, g.CanTouch, g.CastShadow = true, false, false, false, false
+					g.Material = Enum.Material.Neon
+					g.Color = couleur
+					g.Transparency = 0.45 + i * 0.08
+					if g:IsA("MeshPart") then g.TextureID = "" end
+					g.Parent = workspace
+					tween(g, 0.3, { Transparency = 1 })
+					Debris:AddItem(g, 0.35)
+				end
+			end
+			task.wait(0.045)
+		end
+	end)
+end
+
+return FX
