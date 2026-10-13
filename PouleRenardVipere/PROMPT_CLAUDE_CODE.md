@@ -19,6 +19,13 @@ Tu travailles sur mon jeu Roblox **Poule Renard Vipère** : 3 équipes, la Poule
    - Le jeu doit mettre l'attribut `EnPrison` (Player) à `true` pendant la prison.
    - S'il existe déjà un système d'attaque ou d'esquive, ne le duplique pas : dis-moi lequel garder.
 
+## Étape 1 bis : animations
+1. Avatar > Constructeur de rig > R15 > Bloc (crée « Rig » dans le Workspace).
+2. Exécute le contenu exact de `roblox/InstallerAnimations.lua` dans la barre de commandes. Il crée `ReplicatedStorage.Couteaux.Animations` (6 KeyframeSequence) et `Rig.AnimSaves`.
+3. En Play dans Studio, les animations marchent sans ID (KeyframeSequenceProvider). Vérifie le combo 1-2-3, la roulade (Q), la course et la garde couteau en main.
+4. Pour le jeu publié, dis-moi de publier chaque animation : Éditeur d'animation > Rig > Charger > Publier sur Roblox. Ensuite, mets les IDs dans `Config.Animations`. Ne publie qu'avec mon accord.
+5. Si le couteau traverse le corps pendant un coup, ajuste `Config.Grip` (rotation) plutôt que les animations.
+
 ## Étape 2 : Test en Play (Test > Serveur local, 2 ou 3 joueurs)
 - La main tient le milieu du manche. Sinon, règle la rotation dans `Config.Grip`, tranchant vers l'avant.
 - Le couteau ressemble à l'image de référence, avec le contour noir visible mais pas trop épais.

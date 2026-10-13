@@ -54,11 +54,14 @@ Config.Esquive = {
 -- Position du couteau dans la main (à ajuster en Play si besoin)
 Config.Grip = CFrame.new(0, 0, 0)  -- ex : * CFrame.Angles(0, math.rad(90), 0) pour tourner le tranchant
 
--- IDs d'animations (laisser "" tant qu'elles ne sont pas publiées : l'animation
--- classique « Slash/Lunge » de Roblox est utilisée à la place).
+-- IDs des animations publiées (« rbxassetid://123… »). Tant qu'un ID est vide :
+--   - dans Studio, l'animation de ReplicatedStorage.Couteaux.Animations est utilisée (test en Play) ;
+--   - en jeu publié, l'animation classique « Slash/Lunge » de Roblox est utilisée pour les coups.
 Config.Animations = {
-	Coup1 = "", Coup2 = "", Coup3 = "",
-	Esquive = "",
+	Coup1 = "", Coup2 = "", Coup3 = "",   -- combo (Action2, haut du corps / corps entier pour l'estoc)
+	Esquive = "",                         -- roulade avant (Action3)
+	Course = "",                          -- sprint, remplace la course de Roblox (Movement)
+	Garde = "",                           -- garde couteau en main (Action, haut du corps, boucle)
 }
 
 ----------------------------------------------------------------- PALETTE

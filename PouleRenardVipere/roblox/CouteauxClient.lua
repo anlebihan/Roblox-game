@@ -16,20 +16,48 @@ local RAttaque, REsquive, RFX = Remotes:WaitForChild("Attaque"), Remotes:WaitFor
 local joueur = Players.LocalPlayer
 
 ------------------------------------------------------------------ animations
+-- ID publié (Config.Animations) ; sinon, dans Studio seulement, l'animation brute
+-- de ReplicatedStorage.Couteaux.Animations (créée par InstallerAnimations.lua) : on peut tester en Play
+-- avant même de publier.
+local RunService = game:GetService("RunService")
+local KeyframeSequenceProvider = game:GetService("KeyframeSequenceProvider")
+local idsTemp = {}
+local function idAnimation(nom)
+	local id = Config.Animations[nom]
+	if id and id ~= "" then return id end
+	if not RunService:IsStudio() then return nil end
+	if idsTemp[nom] == nil then
+		local brutes = Dossier:FindFirstChild("Animations")
+		local kfs = brutes and brutes:FindFirstChild(nom)
+		local ok, temp = false, nil
+		if kfs then ok, temp = pcall(function() return KeyframeSequenceProvider:RegisterKeyframeSequence(kfs) end) end
+		idsTemp[nom] = ok and temp or false
+	end
+	return idsTemp[nom] or nil
+end
+
 local pistes = {}
 local function piste(humanoid, nom)
-	local id = Config.Animations[nom]
-	if not id or id == "" then return nil end
+	local id = idAnimation(nom)
+	if not id then return nil end
 	pistes[humanoid] = pistes[humanoid] or {}
 	if not pistes[humanoid][nom] then
 		local anim = Instance.new("Animation")
 		anim.AnimationId = id
 		local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
-		local t = animator:LoadAnimation(anim)
-		t.Priority = Enum.AnimationPriority.Action
-		pistes[humanoid][nom] = t
+		pistes[humanoid][nom] = animator:LoadAnimation(anim) -- la priorité vient de l'animation
 	end
 	return pistes[humanoid][nom]
+end
+
+-- course : remplace l'animation « run » du script Animate de Roblox
+local function brancherCourse(char)
+	local id = idAnimation("Course")
+	if not id then return end
+	local animate = char:WaitForChild("Animate", 10)
+	local run = animate and animate:FindFirstChild("run")
+	local anim = run and run:FindFirstChildOfClass("Animation")
+	if anim then anim.AnimationId = id end
 end
 
 -- animation classique de Roblox (tant que les animations perso ne sont pas publiées)
@@ -57,10 +85,20 @@ local function attaquer(tool)
 	RAttaque:FireServer(combo)
 end
 
+local function garde(actif)
+	local hum = joueur.Character and joueur.Character:FindFirstChildOfClass("Humanoid")
+	local t = hum and piste(hum, "Garde")
+	if not t then return end
+	if actif and not t.IsPlaying then t:Play(0.2) elseif not actif then t:Stop(0.2) end
+end
+
 local function brancherOutil(tool)
-	if not tool:IsA("Tool") or not tool:GetAttribute("CouteauId") or tool:GetAttribute("_Branche") then return end
+	if not tool:IsA("Tool") or not tool:GetAttribute("CouteauId") then return end
+	garde(true)
+	if tool:GetAttribute("_Branche") then return end
 	tool:SetAttribute("_Branche", true)
 	tool.Activated:Connect(function() attaquer(tool) end)
+	tool.Unequipped:Connect(function() garde(false) end)
 end
 
 ------------------------------------------------------------------ esquive
@@ -115,6 +153,8 @@ local function surveillerJoueur(p)
 	if p.Character then surveillerPerso(p.Character, p == joueur) end
 	p.CharacterAdded:Connect(function(c) surveillerPerso(c, p == joueur) end)
 end
+if joueur.Character then task.spawn(brancherCourse, joueur.Character) end
+joueur.CharacterAdded:Connect(brancherCourse)
 for _, p in ipairs(Players:GetPlayers()) do surveillerJoueur(p) end
 Players.PlayerAdded:Connect(surveillerJoueur)
 
