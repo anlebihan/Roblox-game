@@ -114,9 +114,27 @@ local function esquiver(_, etat)
 	if now - derniereEsquive < Config.Esquive.Recharge then return Enum.ContextActionResult.Sink end
 	derniereEsquive = now
 
-	local dir = hum.MoveDirection.Magnitude > 0.1 and hum.MoveDirection or root.CFrame.LookVector
-	dir = Vector3.new(dir.X, 0, dir.Z).Unit
-	local t = piste(hum, "Esquive")
+	-- direction choisie par rapport à la CAMÉRA : gauche / droite = saut de côté,
+	-- arrière ou aucune touche = saut en arrière, avant = saut de côté (on n'esquive pas vers l'avant).
+	-- Le perso se tourne face à la caméra pendant l'esquive pour que le saut parte bien sur le côté.
+	local cam = workspace.CurrentCamera
+	local avant = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z)
+	avant = avant.Magnitude > 0.01 and avant.Unit or root.CFrame.LookVector
+	local droite = avant:Cross(Vector3.yAxis)
+	local md = hum.MoveDirection
+	local x, z = md:Dot(droite), md:Dot(avant)
+	local nom, dir
+	if md.Magnitude < 0.1 or (z < -0.5 and math.abs(x) < 0.7) then
+		nom, dir = "EsquiveArriere", -avant
+	elseif x >= 0 then
+		nom, dir = "EsquiveDroite", droite
+	else
+		nom, dir = "EsquiveGauche", -droite
+	end
+	root.CFrame = CFrame.lookAt(root.Position, root.Position + avant)
+	hum.AutoRotate = false
+	task.delay(Config.Esquive.Duree + 0.25, function() if hum.Parent then hum.AutoRotate = true end end)
+	local t = piste(hum, nom)
 	if t then t:Play(0.05) end
 	REsquive:FireServer()
 	FX.Esquive(char, Config.EquipeDe(joueur))

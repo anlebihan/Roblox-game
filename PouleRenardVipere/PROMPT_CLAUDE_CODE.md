@@ -21,8 +21,8 @@ Tu travailles sur mon jeu Roblox **Poule Renard Vipère** : 3 équipes, la Poule
 
 ## Étape 1 bis : animations
 1. Avatar > Constructeur de rig > R15 > Bloc (crée « Rig » dans le Workspace).
-2. Exécute le contenu exact de `roblox/InstallerAnimations.lua` dans la barre de commandes. Il crée `ReplicatedStorage.Couteaux.Animations` (6 KeyframeSequence) et `Rig.AnimSaves`.
-3. En Play dans Studio, les animations marchent sans ID (KeyframeSequenceProvider). Vérifie le combo 1-2-3, la roulade (Q), la course et la garde couteau en main.
+2. Exécute le contenu exact de `roblox/InstallerAnimations.lua` dans la barre de commandes. Il crée `ReplicatedStorage.Couteaux.Animations` (8 KeyframeSequence) et `Rig.AnimSaves`.
+3. En Play dans Studio, les animations marchent sans ID (KeyframeSequenceProvider). Vérifie le combo 1-2-3, les esquives (Q : gauche/droite selon la direction, arrière si aucune touche ou touche arrière), la course et la garde couteau en main.
 4. Pour le jeu publié, dis-moi de publier chaque animation : Éditeur d'animation > Rig > Charger > Publier sur Roblox. Ensuite, mets les IDs dans `Config.Animations`. Ne publie qu'avec mon accord.
 5. Si le couteau traverse le corps pendant un coup, ajuste `Config.Grip` (rotation) plutôt que les animations.
 

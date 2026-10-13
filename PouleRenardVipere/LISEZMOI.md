@@ -73,19 +73,20 @@ Toutes les couleurs, auras, sons et forces de secousse se règlent dans `Config.
 | `Coup1` | 0,52 s | Action2 (haut du corps) | Taille horizontale : armé à droite, coup rapide, follow-through à gauche |
 | `Coup2` | 0,55 s | Action2 (haut du corps) | Revers en diagonale depuis l'épaule gauche |
 | `Coup3` | 0,62 s | Action2 (corps entier) | Estoc : on se ramasse puis fente en avant, bras tendu |
-| `Esquive` | 0,48 s | Action3 (corps entier) | Roulade avant |
+| `EsquiveDroite` / `EsquiveGauche` | 0,5 s | Action3 (corps entier) | Saut de côté : charge, bond penché dans la direction, réception basse et large |
+| `EsquiveArriere` | 0,48 s | Action3 (corps entier) | Saut en arrière, bras devant, réception en fente |
 | `Course` | 0,6 s (boucle) | Movement | Sprint penché, remplace la course de Roblox |
 | `Garde` | 1,6 s (boucle) | Action (haut du corps) | Garde couteau en main, respiration |
 
-Aperçus : `animations/apercu/*.gif`. Les coups ne touchent pas les jambes : on peut attaquer en courant.
+Aperçus : `animations/apercu/*.gif`. **Esquive** : le jeu choisit selon la direction par rapport à la caméra. Gauche ou droite donne un saut de côté ; arrière ou aucune touche donne un saut en arrière ; avant donne un saut de côté (on n'esquive jamais vers l'avant). Le perso reste face à la caméra pendant le saut. Les coups ne touchent pas les jambes : on peut attaquer en courant.
 
-**Comment c'est fait** : `animations/animations_r15.py` construit dans Blender un squelette R15 identique à Roblox (un os par pièce, mêmes pivots, mêmes axes). Les jambes sont posées en IK, et les animations ont de vraies courbes (anticipation, impact rapide, follow-through, retour). Le script exporte ensuite `roblox/InstallerAnimations.lua` : un script qui recrée les animations en KeyframeSequence directement dans Studio, sans l'import FBX qui casse souvent. `animations/R15_animations.blend` contient le squelette et les 6 Actions, pour les retoucher dans Blender (Dope Sheet / Graph Editor).
+**Comment c'est fait** : `animations/animations_r15.py` construit dans Blender un squelette R15 identique à Roblox (un os par pièce, mêmes pivots, mêmes axes). Les jambes sont posées en IK, et les animations ont de vraies courbes (anticipation, impact rapide, follow-through, retour). Le script exporte ensuite `roblox/InstallerAnimations.lua` : un script qui recrée les animations en KeyframeSequence directement dans Studio, sans l'import FBX qui casse souvent. `animations/R15_animations.blend` contient le squelette et les 8 Actions, pour les retoucher dans Blender (Dope Sheet / Graph Editor).
 
 **Installer** :
 1. *(pour publier)* Avatar > **Constructeur de rig** > R15 > Bloc : un modèle « Rig » apparaît dans le Workspace.
 2. Barre de commandes : coller `roblox/InstallerAnimations.lua`, puis Entrée. Les animations sont créées dans `ReplicatedStorage.Couteaux.Animations` (et dans `Rig.AnimSaves`).
 3. **Tester tout de suite** : en Play dans Studio, elles marchent déjà, même sans ID.
-4. **Publier** (obligatoire pour le jeu en ligne) : Éditeur d'animation > cliquer le Rig > « … » > Charger > choisir l'animation > « … » > Publier sur Roblox. Copier l'ID dans `Config.Animations` (`"rbxassetid://123…"`). À faire pour les 6.
+4. **Publier** (obligatoire pour le jeu en ligne) : Éditeur d'animation > cliquer le Rig > « … » > Charger > choisir l'animation > « … » > Publier sur Roblox. Copier l'ID dans `Config.Animations` (`"rbxassetid://123…"`). À faire pour les 8.
 
 **Modifier une animation** : soit dans Blender (retoucher l'Action, puis dans la console Python `exporter_lua(bpy.data.objects["R15"], "chemin/InstallerAnimations.lua")`), soit en changeant les poses dans `ANIMS` du script et le relancer.
 

@@ -59,7 +59,7 @@ Config.Grip = CFrame.new(0, 0, 0)  -- ex : * CFrame.Angles(0, math.rad(90), 0) p
 --   - en jeu publié, l'animation classique « Slash/Lunge » de Roblox est utilisée pour les coups.
 Config.Animations = {
 	Coup1 = "", Coup2 = "", Coup3 = "",   -- combo (Action2, haut du corps / corps entier pour l'estoc)
-	Esquive = "",                         -- roulade avant (Action3)
+	EsquiveDroite = "", EsquiveGauche = "", EsquiveArriere = "",   -- sauts d'esquive (Action3)
 	Course = "",                          -- sprint, remplace la course de Roblox (Movement)
 	Garde = "",                           -- garde couteau en main (Action, haut du corps, boucle)
 }

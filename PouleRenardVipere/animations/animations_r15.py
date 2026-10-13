@@ -86,6 +86,28 @@ def jambes(root_pos, root_pitch, droite, gauche, pd=0.0, pg=0.0, ecart=4):
     return {"RightUpperLeg": (h, 0, ecart), "RightLowerLeg": (g, 0, 0), "RightFoot": (c, 0, -ecart),
             "LeftUpperLeg": (h2, 0, -ecart), "LeftLowerLeg": (g2, 0, 0), "LeftFoot": (c2, 0, ecart)}
 
+def jambes3(root_pos, root_rot, droite, gauche):
+    """IK complète des jambes en 3D. root_rot = (penché avant, tourné gauche, penché droite) en degrés ;
+    droite/gauche = position (x, y, z) de la cheville en coordonnées Roblox (sol : y = 0.3)."""
+    pitch, yaw, roll = root_rot
+    R = Euler((math.radians(-pitch), math.radians(yaw), math.radians(-roll)), 'XYZ').to_matrix()
+    pivot = Vector((0, 2.9, 0)) + Vector(root_pos)
+    out = {}
+    for cote, pied, x in (("Right", droite, 0.5), ("Left", gauche, -0.5)):
+        hanche = pivot + R @ Vector((x, -0.2, 0))
+        dl = R.inverted() @ (Vector(pied) - hanche)
+        L = min(dl.length, CUISSE + GENOU - 1e-3)
+        tz = math.atan2(dl.x, -dl.y)
+        a_dir = math.atan2(-dl.z, math.hypot(dl.x, dl.y))
+        a_gen = math.acos(max(-1, min(1, (CUISSE**2 + GENOU**2 - L*L) / (2 * CUISSE * GENOU))))
+        a_cui = math.acos(max(-1, min(1, (CUISSE**2 + L*L - GENOU**2) / (2 * CUISSE * L))))
+        hx = math.degrees(a_dir + a_cui)
+        gx = -(180 - math.degrees(a_gen))
+        out[cote + "UpperLeg"] = (hx, 0, math.degrees(tz))
+        out[cote + "LowerLeg"] = (gx, 0, 0)
+        out[cote + "Foot"] = (-(hx + gx) + pitch, 0, -math.degrees(tz) + roll)
+    return out
+
 # ------------------------------------------------------------------ poses de base
 GARDE = {   # couteau prêt, lame vers le haut devant le torse
     "UpperTorso": (8, 14, 0), "Head": (-6, -12, 0),
@@ -186,43 +208,64 @@ def anim_coup3():
         (0.62, fin, "LINEAR"),
     ])
 
-def anim_esquive():
-    """Roulade avant (0,45 s), corps entier."""
+def _pose_esq(haut, root, rot, droite, gauche):
+    p = full(haut, root, rot)
+    p.update(jambes3(root, rot, droite, gauche))
+    return p
+
+def anim_esquive_cote(s):
+    """Saut d'esquive sur le côté (s = +1 droite, -1 gauche), corps entier, 0,5 s.
+    Charge sur les jambes, bond latéral penché dans la direction, réception basse et large."""
+    nom = "EsquiveDroite" if s > 0 else "EsquiveGauche"
     sol = 0.3
-    def roule(pitch, y, z, serre=1.0):
-        p = full({}, (0, y, z), (pitch, 0, 0))
-        p.update({
-            "UpperTorso": (35 * serre, 0, 0), "Head": (35 * serre, 0, 0),
-            "RightUpperArm": (70 * serre, 0, 15), "RightLowerArm": (100 * serre, 0, 0), "RightHand": (0, 0, 0),
-            "LeftUpperArm": (70 * serre, 0, -15), "LeftLowerArm": (100 * serre, 0, 0), "LeftHand": (0, 0, 0),
-            "RightUpperLeg": (115 * serre, 0, 8), "RightLowerLeg": (-135 * serre, 0, 0), "RightFoot": (20, 0, 0),
-            "LeftUpperLeg": (110 * serre, 0, -8), "LeftLowerLeg": (-135 * serre, 0, 0), "LeftFoot": (20, 0, 0),
-        })
-        return p
-    def accroupi(y, pitch, haut):
-        p = full(haut, (0, y, 0), (pitch, 0, 0))
-        p.update(jambes((0, y, 0), pitch, (sol, -0.1), (sol, 0.35)))
-        return p
-    depart = accroupi(-0.7, 25, {
-        "UpperTorso": (25, 0, 0), "Head": (10, 0, 0),
-        "RightUpperArm": (40, 0, 20), "RightLowerArm": (60, 0, 0), "RightHand": (0, 0, 0),
-        "LeftUpperArm": (40, 0, -20), "LeftLowerArm": (60, 0, 0), "LeftHand": (0, 0, 0)})
-    reception = accroupi(-0.9, 15, {
-        "UpperTorso": (20, 0, 0), "Head": (-10, 0, 0),
-        "RightUpperArm": (35, 0, 35), "RightLowerArm": (40, 0, 0), "RightHand": (0, 0, 0),
-        "LeftUpperArm": (35, 0, -35), "LeftLowerArm": (40, 0, 0), "LeftHand": (0, 0, 0)})
-    debout = accroupi(-0.15, 0, {
-        "UpperTorso": (6, 0, 0), "Head": (0, 0, 0),
-        "RightUpperArm": (10, 0, 10), "RightLowerArm": (20, 0, 0), "RightHand": (0, 0, 0),
-        "LeftUpperArm": (10, 0, -10), "LeftLowerArm": (20, 0, 0), "LeftHand": (0, 0, 0)})
-    return dict(nom="Esquive", os=TOUT, boucle=False, priorite="Action3", cles=[
-        (0.00, depart, "SINE_IN"),
-        (0.06, roule(80, -1.35, -0.3), "LINEAR"),
-        (0.13, roule(170, -1.75, -0.6), "LINEAR"),
-        (0.20, roule(260, -1.75, -0.8), "LINEAR"),
-        (0.27, roule(330, -1.35, -0.9, 0.8), "QUART_OUT"),
-        (0.33, P(reception, LowerTorso=((375, 0, 0), (0, -0.9, -0.9))), "SINE_INOUT"),
-        (0.48, P(debout, LowerTorso=((360, 0, 0), (0, -0.15, -0.9))), "LINEAR"),
+    def pieds(dx_lead, y_lead, dx_trail, y_trail, z_trail=0.0):
+        lead, trail = (dx_lead * s, y_lead, 0.0), (dx_trail * s, y_trail, z_trail)
+        return (lead, trail) if s > 0 else (trail, lead)          # (droite, gauche)
+    def bras(cote_dehors, x, z, coude):
+        """bras côté esquive écarté pour l'équilibre ; le couteau reste en garde s'il est de l'autre côté."""
+        if s > 0:   # bras droit (couteau) dehors, bras gauche replié
+            return {"RightUpperArm": (x, 0, z), "RightLowerArm": (coude, 0, 0), "RightHand": (-20, 0, 0),
+                    "LeftUpperArm": (35, -10, -25), "LeftLowerArm": (60, 0, 0), "LeftHand": (0, 0, 0)}
+        return {"LeftUpperArm": (x, 0, -z), "LeftLowerArm": (coude, 0, 0), "LeftHand": (0, 0, 0),
+                "RightUpperArm": (42, 8, 15), "RightLowerArm": (82, 0, 0), "RightHand": (-12, 0, 0)}
+    def haut(torse, tete, *b):
+        h = {"UpperTorso": torse, "Head": tete}
+        h.update(bras(*b))
+        return h
+    k0 = _pose_esq(GARDE, (0, -0.25, 0), (5, 0, 0), *pieds(0.6, sol, -0.6, sol))
+    k1 = _pose_esq(P(GARDE, UpperTorso=(15, 0, -5 * s), Head=(-8, 0, 5 * s)),
+                   (-0.15 * s, -0.6, 0), (12, 0, -8 * s), *pieds(0.6, sol, -0.7, sol))
+    k2 = _pose_esq(haut((14, 0, 8 * s), (-6, 0, -26 * s), True, 20, 95, 20),
+                   (0.25 * s, -0.15, 0), (10, 0, 24 * s), *pieds(1.15, 0.85, -0.25, 0.75, 0.1))
+    k3 = _pose_esq(haut((18, 0, 6 * s), (-10, 0, -18 * s), True, 25, 65, 30),
+                   (0.2 * s, -0.9, 0), (16, 0, 12 * s), *pieds(1.25, sol, -0.55, sol, 0.15))
+    k4 = _pose_esq(haut((16, 0, 4 * s), (-10, 0, -12 * s), True, 32, 40, 40),
+                   (0.15 * s, -0.82, 0), (14, 0, 8 * s), *pieds(1.25, sol, -0.55, sol, 0.15))
+    k5 = _pose_esq(GARDE, (0.05 * s, -0.3, 0), (5, 0, 2 * s), *pieds(0.85, sol, -0.45, sol, 0.05))
+    return dict(nom=nom, os=TOUT, boucle=False, priorite="Action3", cles=[
+        (0.00, k0, "SINE_OUT"), (0.05, k1, "QUART_OUT"), (0.12, k2, "SINE_INOUT"),
+        (0.20, k3, "QUART_OUT"), (0.30, k4, "SINE_INOUT"), (0.50, k5, "LINEAR"),
+    ])
+
+def anim_esquive_droite(): return anim_esquive_cote(1)
+def anim_esquive_gauche(): return anim_esquive_cote(-1)
+
+def anim_esquive_arriere():
+    """Saut en arrière : charge, bond vers l'arrière bras devant, réception en fente basse."""
+    sol = 0.3
+    devant = P(GARDE, LeftUpperArm=(60, -10, -20), LeftLowerArm=(40, 0, 0))
+    k0 = _pose_esq(GARDE, (0, -0.25, 0), (5, 0, 0), (0.6, sol, 0), (-0.6, sol, 0))
+    k1 = _pose_esq(P(GARDE, UpperTorso=(14, 10, 0)), (0, -0.6, -0.1), (15, 0, 0), (0.6, sol, 0), (-0.6, sol, 0))
+    k2 = _pose_esq(P(devant, UpperTorso=(6, 8, 0), Head=(6, -8, 0)),
+                   (0, -0.15, 0.35), (-12, 0, 0), (0.6, 0.9, -0.45), (-0.6, 0.75, -0.2))
+    k3 = _pose_esq(P(devant, UpperTorso=(16, 12, 0), Head=(-14, -10, 0)),
+                   (0, -0.9, 0.3), (18, 0, 0), (0.65, sol, -0.75), (-0.6, sol, 0.6))
+    k4 = _pose_esq(P(devant, UpperTorso=(14, 12, 0), Head=(-12, -10, 0)),
+                   (0, -0.8, 0.25), (14, 0, 0), (0.65, sol, -0.75), (-0.6, sol, 0.6))
+    k5 = _pose_esq(GARDE, (0, -0.3, 0.05), (5, 0, 0), (0.6, sol, -0.35), (-0.6, sol, 0.25))
+    return dict(nom="EsquiveArriere", os=TOUT, boucle=False, priorite="Action3", cles=[
+        (0.00, k0, "SINE_OUT"), (0.05, k1, "QUART_OUT"), (0.13, k2, "SINE_INOUT"),
+        (0.21, k3, "QUART_OUT"), (0.32, k4, "SINE_INOUT"), (0.48, k5, "LINEAR"),
     ])
 
 def anim_course():
@@ -256,7 +299,8 @@ def anim_garde():
         (0.0, a, "SINE_INOUT"), (0.8, b, "SINE_INOUT"), (1.6, a, "LINEAR"),
     ])
 
-ANIMS = [anim_coup1, anim_coup2, anim_coup3, anim_esquive, anim_course, anim_garde]
+ANIMS = [anim_coup1, anim_coup2, anim_coup3, anim_esquive_droite, anim_esquive_gauche, anim_esquive_arriere,
+         anim_course, anim_garde]
 
 # =====================================================================
 #  Blender : squelette, poupée de test, actions
