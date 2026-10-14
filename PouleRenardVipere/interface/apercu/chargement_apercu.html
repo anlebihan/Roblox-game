@@ -1,0 +1,128 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Luckiest+Guy&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1280px;height:720px;overflow:hidden;background:#000;font-family:'Fredoka';position:relative}
+#scene{position:absolute;left:50%;top:50%;width:1331px;height:749px;transform:translate(-50%,-50%)}
+.c{position:absolute;left:50%;top:50%;width:100%;height:100%;transform:translate(-50%,-50%);opacity:0}
+.fx{position:absolute;transform:translate(-50%,-50%);opacity:0}
+#bas{position:absolute;left:50%;width:50%;max-width:760px;height:122px;transform:translateX(-50%)}
+#etat,#pct{font-family:'Luckiest Guy';color:#fff;text-align:center;-webkit-text-stroke:2px #000;paint-order:stroke fill}
+#etat{position:absolute;left:0;right:0;top:0;font-size:24px}
+#barreFond{position:absolute;left:0;right:0;top:32px;height:38px;background:#0e0a20;border:4px solid #080512;border-radius:99px;overflow:hidden}
+#barre{position:absolute;left:0;top:0;bottom:0;border-radius:99px;overflow:hidden;background:linear-gradient(90deg,#f03228,#ffc81e 35%,#ff7814 60%,#6ef032)}
+#rayures{position:absolute;inset:0;width:300%;background:repeating-linear-gradient(90deg,rgba(255,255,255,.18) 0 22px,transparent 22px 44px)}
+#brillance{position:absolute;left:0;right:0;top:4px;height:30%;background:rgba(255,255,255,.4);border-radius:99px}
+#pct{position:absolute;left:0;right:0;top:3px;font-size:22px}
+#astuce{position:absolute;left:-30%;right:-30%;top:80px;text-align:center;font-weight:700;font-size:20px;color:#ebe6ff;-webkit-text-stroke:1.5px #000;paint-order:stroke fill;white-space:nowrap}
+#jouer{position:absolute;left:50%;top:78%;width:256px;height:80px;transform:translate(-50%,-50%) scale(0);border:5px solid #080512;border-radius:24px;
+  background:linear-gradient(#82ff78,#1eaa46);display:none;align-items:center;justify-content:center;font-family:'Luckiest Guy';font-size:44px;color:#fff;-webkit-text-stroke:2.5px #000;paint-order:stroke fill;box-shadow:0 7px 0 #080512, inset 0 5px 0 rgba(255,255,255,.4);padding-top:8px}
+#passer{position:absolute;right:20px;bottom:20px;width:150px;height:46px;border:4px solid #080512;border-radius:14px;background:#5a6078;font-family:'Luckiest Guy';font-size:22px;color:#fff;display:none;align-items:center;justify-content:center;padding-top:4px}
+#flash{position:absolute;inset:0;background:#fff;opacity:0}
+#lame{position:absolute;top:50%;width:2816px;height:252px;transform:translate(-50%,-50%) rotate(-18deg);opacity:1}
+</style></head><body>
+<div id="scene">
+ <img class="c" id="ciel" src="../rendus/chargement_ciel.png">
+ <img class="fx" id="rayons" src="fx_rayons.png">
+ <img class="fx" id="anneau" src="fx_anneau.png">
+ <div id="etoiles"></div>
+ <img class="c" id="rocher" src="../rendus/chargement_rocher.png">
+ <img class="c" id="oR" src="../rendus/chargement_ombre_RenardLegendaire.png">
+ <img class="c" id="oP" src="../rendus/chargement_ombre_PouleRoyal.png">
+ <img class="c" id="oV" src="../rendus/chargement_ombre_ViperRoyal.png">
+ <div id="impacts"></div>
+ <img class="c" id="cR" src="../rendus/chargement_RenardLegendaire.png">
+ <img class="c" id="cP" src="../rendus/chargement_PouleRoyal.png">
+ <img class="c" id="cV" src="../rendus/chargement_ViperRoyal.png">
+ <div id="braises"></div>
+ <div id="logoCadre" style="position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:50% 12.5%">
+   <img id="logo" src="../rendus/chargement_logo_final.png" style="position:absolute;inset:0;width:100%;height:100%;opacity:0">
+   <img id="reflet" src="chargement_logo_masque.png" style="position:absolute;inset:0;width:100%;height:100%;opacity:0">
+ </div>
+</div>
+<div id="ombreBas" style="position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(transparent,rgba(6,3,14,.85));opacity:0"></div><div id="bas"><div id="etat">CHARGEMENT DE LA VALLÉE…</div>
+ <div id="barreFond"><div id="barre"><div id="rayures"></div><div id="brillance"></div></div><div id="pct">0%</div></div>
+ <div id="astuce"></div></div>
+<div id="jouer">▶ JOUER</div>
+<div id="passer">PASSER ⏭</div>
+<div id="flash"></div>
+<img id="lame" src="fx_lame.png" style="left:-100%">
+<script>
+// même chronologie que EcranChargement.lua
+const W=1331,H=749;
+const $=id=>document.getElementById(id);
+const seg=(t,a,b)=>Math.min(1,Math.max(0,(t-a)/(b-a)));
+const E={quadOut:x=>1-(1-x)**2,quadIn:x=>x*x,quartOut:x=>1-(1-x)**4,sine:x=>.5-Math.cos(Math.PI*x)/2,
+ backOut:x=>{const c=1.9;return 1+(c+1)*(x-1)**3+c*(x-1)**2}};
+let s=7;const rnd=()=>{s=(s*16807)%2147483647;return (s-1)/2147483646};
+const COUL=['#ff4628','#ffc828','#ff7814','#78ff3c','#b45aff'];
+const ASTUCES=["💡 Le 🦊 Renard attrape la 🐔 Poule, la Poule attrape la 🐍 Vipère…","💡 Appuie sur A pour esquiver : tu es invincible pendant le saut !"];
+const etoiles=[];for(let i=0;i<26;i++){const e=document.createElement('img');e.src='fx_etincelle.png';e.className='fx';
+ e.style.left=(2+rnd()*96)+'%';e.style.top=(2+rnd()*48)+'%';e.style.width='11px';$('etoiles').appendChild(e);etoiles.push([e,rnd()*6.28,1.5+rnd()*2.5])}
+const couteaux=[[$('cR'),1.4,[.5,.87],'#ff7814',$('oR')],[$('cP'),1.85,[.19,.92],'#ff4628',$('oP')],[$('cV'),2.2,[.83,.94],'#78ff3c',$('oV')]];let fissures=[];
+let parts=[],prochaine=0,secousse=0,flash=0,impacts={},affiche=0,pret=null,sortie=null,tPrec=0,astIdx=-1,astDeb=0;
+const DUREE_MIN=7, CLIC=8.6;
+function particule(o){const e=document.createElement('img');e.src=o.img||(o.etin?'fx_etincelle.png':'fx_braise.png');e.className='fx';
+ e.style.width=(o.taille*W)+'px';e.style.filter=`drop-shadow(0 0 0 ${o.c})`;e.style.background='transparent';
+ if(!o.opaque&&!o.fumee)e.style.mixBlendMode='screen';$('braises').appendChild(e);o.e=e;o.age=0;parts.push(o)}
+function impactRoche(p,c){const f=document.createElement('div');f.style.cssText=`position:absolute;transform:translate(-50%,-50%);background:${c};-webkit-mask-image:url(fx_fissure.png);-webkit-mask-size:100% 100%;filter:drop-shadow(0 0 6px ${c})`;
+ $('impacts').appendChild(f);
+ const l=document.createElement('div');l.style.cssText=`position:absolute;transform:translate(-50%,-50%);width:${.34*W}px;height:${.34*.55*W}px;mix-blend-mode:screen;background:radial-gradient(closest-side, ${c}, transparent)`;
+ $('impacts').appendChild(l);
+ fissures.push({e:f,t:0,p,l});
+ for(let i=0;i<14;i++){const a=-Math.PI*(.05+rnd()*.9),v=.35+rnd()*.45;particule({img:`fx_eclat${i%6+1}.png`,x:p[0],y:p[1],vx:Math.cos(a)*v*.7,vy:Math.sin(a)*v,g:2.4,vie:.9+rnd()*.4,taille:.018+rnd()*.032,rot:rnd()*360,vrot:-600+rnd()*1200,opaque:1})}
+ for(let i=0;i<6;i++){particule({img:'fx_fumee.png',x:p[0]+(rnd()-.5)*.06,y:p[1]-.01,vx:(rnd()-.5)*.12,vy:-(.02+rnd()*.05),g:0,vie:1+rnd()*.5,taille:.05+rnd()*.03,croissance:.09,rot:rnd()*360,vrot:-40+rnd()*80,fumee:1})}}
+function colorer(e,c){e.style.filter=`brightness(0) saturate(100%) drop-shadow(0 0 0 ${c}) drop-shadow(0 0 0 ${c})`}
+function poussiere(p){for(let i=0;i<14;i++){const a=Math.PI*(1.05+rnd()*.9),v=.08+rnd()*.14;
+  particule({x:p[0],y:p[1],vx:Math.cos(a)*v,vy:Math.sin(a)*v*.9,g:.35,vie:.5+rnd()*.4,taille:.012+rnd()*.018,c:'#c8b4dc'})}
+ for(let i=0;i<8;i++){const a=rnd()*6.28;particule({x:p[0],y:p[1]-.02,vx:Math.cos(a)*.3,vy:Math.sin(a)*.3-.15,g:.6,vie:.5,taille:.012,c:COUL[i%5],etin:1})}}
+function pos(el,dx,dy){el.style.transform=`translate(calc(-50% + ${dx*W}px), calc(-50% + ${dy*H}px))`}
+window.frame=function(t){
+ const dt=t-tPrec;tPrec=t;
+ secousse=Math.max(0,secousse-dt*4);
+ $('scene').style.transform=`translate(calc(-50% + ${(rnd()-.5)*secousse*.02*W}px), calc(-50% + ${(rnd()-.5)*secousse*.02*H}px))`;
+ const ciel=$('ciel');ciel.style.opacity=E.sine(seg(t,0,.9));const z=1.1-.1*E.quadOut(seg(t,0,12));
+ ciel.style.width=(z*100)+'%';ciel.style.height=(z*100)+'%';
+ const a=E.backOut(seg(t,.4,1.3)),an=$('anneau');an.style.width=(.42*a*W)+'px';an.style.left='50%';an.style.top='51%';
+ an.style.transform=`translate(-50%,-50%) rotate(${t*25}deg)`;an.style.opacity=seg(t,.4,.9)*(.22+.1*Math.sin(t*3));
+ an.style.filter=`hue-rotate(${(t*20)%360}deg)`;
+ const ra=$('rayons');ra.style.width=(.75*W)+'px';ra.style.left='50%';ra.style.top='51%';ra.style.transform=`translate(-50%,-50%) rotate(${-t*6}deg)`;
+ ra.style.opacity=seg(t,.6,1.6)*(.14+.05*Math.sin(t*2));ra.style.filter='sepia(1) hue-rotate(220deg) saturate(3)';
+ for(const [e,ph,v] of etoiles){e.style.opacity=seg(t,.3,1.2)*(.5+.5*Math.sin(t*v+ph))*.9}
+ const r=E.quartOut(seg(t,.5,1.3));$('rocher').style.opacity=seg(t,.5,.8);pos($('rocher'),0,.3*(1-r));
+ couteaux.forEach(([img,tc,imp,col,om],i)=>{const ch=seg(t,tc-.3,tc);img.style.opacity=ch>0?1:0;om.style.opacity=E.quadIn(seg(ch,.75,1));pos(img,0,-1.1*(1-E.quadIn(ch)));
+  if(ch>=1&&!impacts[i]){impacts[i]=1;secousse=i==0?1:.7;flash=i==0?.45:.28;poussiere(imp);impactRoche(imp,col)}});
+ flash=Math.max(0,flash-dt*5);
+ for(const f of fissures){f.t+=dt;const g=E.quartOut(seg(f.t,0,.14));f.e.style.width=(.15*g*W)+'px';f.e.style.height=(.15*.42*g*W)+'px';
+  f.e.style.left=(f.p[0]*100)+'%';f.e.style.top=((f.p[1]+.005)*100)+'%';f.e.style.opacity=1-(.05+.4*seg(f.t,.15,1.2)+.08*Math.sin(t*4+f.p[0]*10));f.l.style.left=(f.p[0]*100)+'%';f.l.style.top=(f.p[1]*100)+'%';f.l.style.opacity=.8*(1-E.quadOut(seg(f.t,.05,.9)))}
+ const l=seg(t,2.6,3.2),lc=$('logoCadre');$('logo').style.opacity=l>0?1:0;
+ lc.style.transform=`translateY(${Math.sin(t*1.6)*4}px) rotate(${-8*(1-E.quartOut(l))}deg) scale(${E.backOut(l)})`;
+ const per=(t-3.2)%4, rf=seg(per,0,.7), re=$('reflet');
+ re.style.opacity=(t>3.2&&rf>0&&rf<1)?.75:0;
+ const px=15+70*rf;re.style.webkitMaskImage=`linear-gradient(110deg, transparent ${px-4}%, #000 ${px}%, transparent ${px+4}%)`;
+ if(t>.8&&t>prochaine){prochaine=t+.07;particule({x:.05+rnd()*.9,y:1.02,vx:0,vy:-(.12+rnd()*.13),g:0,vie:2.5+rnd()*2,taille:.005+rnd()*.008,c:COUL[Math.floor(rnd()*5)],onde:rnd()*6.28})}
+ parts=parts.filter(p=>{p.age+=dt;const k=p.age/p.vie;if(k>=1){p.e.remove();return false}
+  p.vy+=(p.g||0)*dt;p.x+=(p.vx+(p.onde!==undefined?.02*Math.cos(t*2+p.onde):0))*dt;p.y+=p.vy*dt;
+  p.e.style.left=(p.x*100)+'%';p.e.style.top=(p.y*100)+'%';
+  if(p.vrot){p.rot=(p.rot||0)+p.vrot*dt}const tl=p.croissance?p.taille+p.croissance*p.age:p.taille;p.e.style.width=(tl*W)+'px';
+  p.e.style.transform=`translate(-50%,-50%) rotate(${p.rot||0}deg)`;
+  if(p.opaque)p.e.style.opacity=1-Math.min(1,Math.max(0,(k-.7)/.3));else if(p.fumee){p.e.style.opacity=.65*(1-k);p.e.style.filter='brightness(.7) sepia(.5) hue-rotate(220deg) saturate(1.3)'}
+  else{p.e.style.opacity=Math.sin(Math.PI*Math.min(1,k*1.2))*.95;p.e.style.filter=`drop-shadow(0 0 4px ${p.c}) drop-shadow(0 0 2px ${p.c})`}return true});
+ const b=E.backOut(seg(t,3,3.6));$('bas').style.top=(720*(1+.3*(1-b))-10-122)+'px';$('ombreBas').style.opacity=seg(t,2.8,3.4);
+ const reel=Math.min(1,(t-2.5)/4.2), cible=Math.max(0,Math.min(1,Math.min(reel,(t-3)/(DUREE_MIN-3))));
+ affiche+=(cible-affiche)*Math.min(1,dt*5);if(cible>=1&&affiche>.995)affiche=1;
+ $('barre').style.width=(Math.max(affiche,.04)*100)+'%';$('rayures').style.transform=`translateX(${-(t*60)%44}px)`;
+ $('pct').textContent=Math.round(affiche*100)+'%';
+ if(t>3.2){if(astIdx<0||t-astDeb>5){astIdx=(astIdx+1)%ASTUCES.length;astDeb=t}
+  const txt=[...ASTUCES[astIdx]];$('astuce').textContent=txt.slice(0,Math.floor((t-astDeb)*45)).join('')}
+ if(affiche>=1&&!pret){pret=t;$('etat').textContent='PRÊT !';$('jouer').style.display='flex'}
+ if(pret){const bb=seg(t,pret,pret+.5);$('jouer').style.transform=`translate(-50%,-50%) scale(${E.backOut(bb)*(1+.05*Math.sin((t-pret)*6))})`;
+  $('etat').style.color=`hsl(110,${70+25*Math.sin(t*6)}%,70%)`}
+ $('passer').style.display=(t>2.5&&!pret&&!sortie)?'flex':'none';
+ if(t>=CLIC&&!sortie)sortie=t;
+ if(sortie){const s2=t-sortie;$('lame').style.left=((-1+3*E.quartOut(seg(s2,0,.35)))*100)+'%';
+  if(s2>.15&&s2<.2)flash=1;const f=E.quadIn(seg(s2,.2,.9));document.body.style.opacity=1-f;
+  $('scene').style.width=(1331*(1+.25*f))+'px';$('scene').style.height=(749*(1+.25*f))+'px'}
+ $('flash').style.opacity=flash;
+}
+</script></body></html>
