@@ -49,3 +49,19 @@ Installe la nouvelle interface de jeu de TRIPLE HUNT depuis les dossiers que je 
    - en manche : rôle, chrono (rouge les 10 dernières secondes), équipes, fil des captures, alerte « X PROCHE ! », boutons FRAPPER / ESQUIVE (recharge) sur mobile ;
    - aucune erreur dans la sortie.
    Si une image manque (carré vide), vérifie son nom dans `ReplicatedFirst.ImagesInterface`.
+
+---
+
+## C. Esquive parfaite (nouvelle animation + règle de combat)
+
+> Fichiers : dossier `PouleRenardVipere/roblox` et `interface/roblox/Interface/HUD.lua` (mis à jour depuis GitHub).
+
+Ajoute l'ESQUIVE PARFAITE à mon jeu : si j'esquive juste avant ou pendant le coup d'un ennemi, je deviens intouchable 1 s et l'ennemi est DÉSARMÉ 1,4 s (il ne peut plus frapper et il est ralenti), avec une vrille aérienne animée et des effets. Copie mes scripts EXACTEMENT, ne supprime rien sans me demander, réponds en français en phrases courtes, ne publie rien (ni jeu ni animation) sans mon accord.
+
+1. Exécute `roblox/InstallerAnimations.lua` dans la barre de commandes (il recrée les 9 animations, dont la nouvelle `EsquiveParfaite`).
+2. Remplace le contenu EXACT de : `ReplicatedStorage.Couteaux.Config` (`roblox/Config.lua`, puis remets `Combat.DonnerCouteau = false`), `ReplicatedStorage.Couteaux.FX` (`roblox/FX.lua`), `ServerScriptService.CouteauxServeur` (`roblox/CouteauxServeur.lua`), `StarterPlayerScripts.CouteauxClient` (`roblox/CouteauxClient.lua`) et `ReplicatedStorage.Interface.HUD` (`interface/roblox/Interface/HUD.lua`). Si tu avais déjà mis des IDs d'animations publiées dans `Config.Animations`, remets-les.
+3. Les BOTS : dans le code où un bot attrape un joueur (GameManager / Bots, l'ancien `tryAttack`), ajoute juste avant la capture :
+   `if ServerStorage.CouteauxEvents.TesterEsquive:Invoke(joueurVise, modeleDuBot) then return end`
+   et ne fais pas attaquer un bot dont le modèle a l'attribut `Etourdi`. Montre-moi les lignes avant de les ajouter.
+4. Facultatif (si je le veux) : récompense dans le GameManager avec `ServerStorage.CouteauxEvents.EsquiveParfaite.Event:Connect(function(joueur, attaquant) ... end)` (pièces, quête « fais 3 esquives parfaites »…).
+5. Teste en Play à 2 joueurs (Test > Serveur local, 2 joueurs) : un joueur frappe, l'autre appuie sur ESQUIVE (A) au moment du coup. Vérifie : la vrille se joue, « ESQUIVE PARFAITE ! » s'affiche, l'écran se fige une fraction de seconde, l'attaquant voit « DÉSARMÉ ! » avec des étoiles au-dessus de la tête et ne peut plus frapper, et aucune erreur dans la sortie. Teste aussi contre un bot.

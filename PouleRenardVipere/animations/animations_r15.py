@@ -299,8 +299,56 @@ def anim_garde():
         (0.0, a, "SINE_INOUT"), (0.8, b, "SINE_INOUT"), (1.6, a, "LINEAR"),
     ])
 
+def pieds_corps(root, rot, droite, gauche):
+    """Pieds donnés dans le repère du bassin (x, y, z relatifs au pivot des hanches) -> coordonnées Roblox."""
+    pitch, yaw, roll = rot
+    R = Euler((math.radians(-pitch), math.radians(yaw), math.radians(-roll)), 'XYZ').to_matrix()
+    pivot = Vector((0, 2.9, 0)) + Vector(root)
+    return tuple(tuple(pivot + R @ Vector(v)) for v in (droite, gauche))
+
+def anim_esquive_parfaite():
+    """ESQUIVE PARFAITE (0,95 s) : élan, vrille aérienne couchée à l'horizontale (360°), atterrissage
+    « super-héros » genou presque au sol main posée, puis riposte couteau pointé, retour en garde."""
+    sol = 0.3
+    def k(haut, root, rot, droite, gauche, corps=False):
+        if corps:
+            droite, gauche = pieds_corps(root, rot, droite, gauche)
+        return _pose_esq(haut, root, rot, droite, gauche)
+    bras_ouverts = P(GARDE, RightUpperArm=(10, 0, 100), RightLowerArm=(15, 0, 0), RightHand=(-30, 0, 0),
+                     LeftUpperArm=(10, 0, -100), LeftLowerArm=(15, 0, 0))
+    bras_serres = P(GARDE, RightUpperArm=(60, 0, 40), RightLowerArm=(120, 0, 0), RightHand=(-20, 0, 0),
+                    LeftUpperArm=(60, 0, -40), LeftLowerArm=(120, 0, 0))
+    lame_tendue = P(GARDE, RightUpperArm=(20, 0, 95), RightLowerArm=(5, 0, 0), RightHand=(-60, 0, 0),
+                    LeftUpperArm=(70, 0, -60), LeftLowerArm=(100, 0, 0))
+    atterrit = P(GARDE, UpperTorso=(30, -10, 0), Head=(-38, 10, 0),
+                 RightUpperArm=(-20, 0, 70), RightLowerArm=(10, 0, 0), RightHand=(-40, 0, 0),     # couteau tendu en arrière
+                 LeftUpperArm=(55, 0, -10), LeftLowerArm=(5, 0, 0), LeftHand=(-60, 0, 0))      # main posée au sol
+    riposte = P(GARDE, UpperTorso=(14, 24, 0), Head=(-14, -20, 0),
+                RightUpperArm=(95, 15, 10), RightLowerArm=(10, 0, 0), RightHand=(-80, 0, 0),
+                LeftUpperArm=(-35, 10, -30), LeftLowerArm=(30, 0, 0))
+    k0 = k(GARDE, (0, -0.2, 0), (5, 0, 0), (0.6, sol, 0), (-0.6, sol, 0))
+    k1 = k(P(GARDE, UpperTorso=(18, -25, 0), Head=(-10, 22, 0)),                       # élan : on se ramasse, torsion
+           (0, -0.75, 0.1), (14, -20, -6), (0.7, sol, 0.15), (-0.7, sol, -0.1))
+    k2 = k(P(bras_ouverts, UpperTorso=(-12, 0, 0), Head=(20, 0, 0)),                  # décollage penché en arrière
+           (0.3, 0.6, 0.1), (-8, 80, 38), (0.5, -1.0, 0.6), (-0.5, -2.1, -0.1), True)
+    k3 = k(P(bras_serres, UpperTorso=(5, 0, 0), Head=(5, 0, 0)),                      # sommet : vrille couchée
+           (0.5, 1.45, 0), (-4, 200, 80), (0.4, -1.3, -0.9), (-0.45, -2.05, 0.3), True)
+    k4 = k(P(lame_tendue, UpperTorso=(10, 0, 0), Head=(-5, 0, 0)),                    # la lame trace un cercle
+           (0.35, 0.8, 0), (5, 315, 30), (0.5, -1.5, -1.0), (-0.5, -2.1, 0.2), True)
+    k5 = k(atterrit, (0.2, -1.55, -0.1), (32, 360, 6),                                # atterrissage super-héros
+           (0.95, sol, -0.9), (-0.6, sol, 0.95))
+    k6 = k(P(atterrit, Head=(-42, 14, 0)), (0.25, -1.6, -0.05), (34, 360, 8),
+           (0.95, sol, -0.9), (-0.6, sol, 0.95))
+    k7 = k(riposte, (0.1, -0.6, -0.2), (12, 360, 0), (0.75, sol, -0.75), (-0.6, sol, 0.55))
+    k8 = k(GARDE, (0, -0.2, 0), (5, 360, 0), (0.6, sol, 0), (-0.6, sol, 0))
+    return dict(nom="EsquiveParfaite", os=TOUT, boucle=False, priorite="Action4", cles=[
+        (0.00, k0, "SINE_OUT"), (0.06, k1, "EXPO_OUT"), (0.15, k2, "SINE_INOUT"), (0.27, k3, "SINE_INOUT"),
+        (0.38, k4, "EXPO_IN"), (0.47, k5, "QUART_OUT"), (0.62, k6, "CUBIC_INOUT"), (0.78, k7, "SINE_INOUT"),
+        (0.95, k8, "LINEAR"),
+    ])
+
 ANIMS = [anim_coup1, anim_coup2, anim_coup3, anim_esquive_droite, anim_esquive_gauche, anim_esquive_arriere,
-         anim_course, anim_garde]
+         anim_course, anim_garde, anim_esquive_parfaite]
 
 # =====================================================================
 #  Blender : squelette, poupée de test, actions

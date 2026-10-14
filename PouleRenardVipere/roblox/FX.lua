@@ -5,6 +5,9 @@
        FX.Impact(pos, id, victime)   explosion propre à chaque couteau + son + flash sur la victime
        FX.Esquive(character, equipe) images fantômes + nuage de poussière + son
        FX.Secousse(force, duree)     secousse de caméra
+       FX.EsquiveParfaite(vChar, aChar, equipe)   traînée de fantômes dorés, ondes, « ding », lame de l'attaquant
+                                                   qui ricoche, étoiles qui tournent au-dessus de l'attaquant désarmé
+       FX.Ralenti(duree)             effet « ralenti » sur l'écran du joueur qui a fait l'esquive parfaite
 ]]
 local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
@@ -393,6 +396,30 @@ function FX.Impact(pos, id, victime)
 end
 
 ------------------------------------------------------------------ ESQUIVE
+-- images fantômes (copies néon du personnage qui s'effacent)
+local function fantomes(character, couleur, n, intervalle, base)
+	task.spawn(function()
+		for i = 1, n do
+			if not character.Parent then return end
+			for _, p in ipairs(character:GetChildren()) do
+				if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" and p.Transparency < 1 then
+					local g = p:Clone()
+					g:ClearAllChildren()
+					g.Anchored, g.CanCollide, g.CanQuery, g.CanTouch, g.CastShadow = true, false, false, false, false
+					g.Material = Enum.Material.Neon
+					g.Color = couleur
+					g.Transparency = (base or 0.45) + i * (0.32 / n)
+					if g:IsA("MeshPart") then g.TextureID = "" end
+					g.Parent = workspace
+					tween(g, 0.3 + n * 0.02, { Transparency = 1 })
+					Debris:AddItem(g, 0.35 + n * 0.02)
+				end
+			end
+			task.wait(intervalle or 0.045)
+		end
+	end)
+end
+
 function FX.Esquive(character, equipe)
 	if not character then return end
 	local root = character:FindFirstChild("HumanoidRootPart")
@@ -401,26 +428,123 @@ function FX.Esquive(character, equipe)
 	sonA(Config.Sons.Esquive, root.Position, 0.5, 1.45)
 	rafale(root.Position - Vector3.new(0, 2.6, 0), { tex = "fumee", couleur = Color3.fromRGB(230, 225, 215), lumiere = 0,
 		taille = NS(0.8, 1.6), transparence = NS(0.4, 1), vie = NR(0.4, 0.6), vitesse = NR(4, 8), ecart = Vector2.new(5, 180) }, 10)
-	-- images fantômes
-	task.spawn(function()
-		for i = 1, 4 do
-			for _, p in ipairs(character:GetChildren()) do
-				if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" and p.Transparency < 1 then
-					local g = p:Clone()
-					g:ClearAllChildren()
-					g.Anchored, g.CanCollide, g.CanQuery, g.CanTouch, g.CastShadow = true, false, false, false, false
-					g.Material = Enum.Material.Neon
-					g.Color = couleur
-					g.Transparency = 0.45 + i * 0.08
-					if g:IsA("MeshPart") then g.TextureID = "" end
-					g.Parent = workspace
-					tween(g, 0.3, { Transparency = 1 })
-					Debris:AddItem(g, 0.35)
-				end
+	fantomes(character, couleur, 4, 0.045)
+end
+
+------------------------------------------------------------------ ESQUIVE PARFAITE
+local OR = Color3.fromRGB(255, 214, 90)
+function FX.EsquiveParfaite(vChar, aChar, equipe)
+	local vRoot = vChar and vChar:FindFirstChild("HumanoidRootPart")
+	if not vRoot then return end
+	local couleur = (Config.Equipes[equipe or ""] or {}).Couleur or OR
+	local pos = vRoot.Position
+	-- son : « ding » cristallin + souffle grave
+	sonA(Config.Sons.Parfaite, pos, 0.9, 1.25)
+	task.delay(0.06, function() sonA(Config.Sons.Parfaite, pos, 0.6, 1.9) end)
+	sonA(Config.Sons.Esquive, pos, 0.7, 0.8)
+	-- flash de lumière dorée
+	local a = pointMonde(pos, 1)
+	local lum = Instance.new("PointLight")
+	lum.Color, lum.Range, lum.Brightness = OR, 18, 6
+	lum.Parent = a
+	tween(lum, 0.6, { Brightness = 0 })
+	-- ondes au sol + anneau vertical
+	local sol = pos - Vector3.new(0, 2.8, 0)
+	onde(sol, OR, 16, 0.45)
+	task.delay(0.08, function() onde(sol, couleur, 11, 0.4) end)
+	task.delay(0.16, function() onde(sol, Color3.new(1, 1, 1), 7, 0.3) end)
+	local anneau = Instance.new("Part")
+	anneau.Shape = Enum.PartType.Cylinder
+	anneau.Anchored, anneau.CanCollide, anneau.CanQuery, anneau.CanTouch, anneau.CastShadow = true, false, false, false, false
+	anneau.Material, anneau.Color, anneau.Transparency = Enum.Material.Neon, OR, 0.1
+	anneau.Size = Vector3.new(0.1, 2, 2)
+	anneau.CFrame = CFrame.new(pos) * CFrame.Angles(0, math.rad(90), 0)
+	if aChar and aChar:FindFirstChild("HumanoidRootPart") then
+		anneau.CFrame = CFrame.lookAt(pos, aChar.HumanoidRootPart.Position) * CFrame.Angles(0, math.rad(90), 0)
+	end
+	anneau.Parent = workspace
+	tween(anneau, 0.4, { Size = Vector3.new(0.02, 12, 12), Transparency = 1 })
+	Debris:AddItem(anneau, 0.45)
+	-- étincelles dorées + poussière
+	rafale(pos, { couleur = OR, couleur2 = Color3.new(1, 1, 1), taille = NS(0.35, 0), vie = NR(0.4, 0.9), vitesse = NR(14, 28),
+		frein = 4, lumiere = 1 }, 34)
+	rafale(sol, { tex = "fumee", couleur = Color3.fromRGB(240, 230, 210), lumiere = 0, taille = NS(1, 2.4), transparence = NS(0.35, 1),
+		vie = NR(0.5, 0.8), vitesse = NR(8, 14), ecart = Vector2.new(5, 180) }, 16)
+	-- longue traînée de fantômes dorés pendant la vrille
+	fantomes(vChar, OR, 9, 0.05, 0.35)
+
+	-- l'attaquant : la lame frappe le vide et ricoche
+	local aRoot = aChar and aChar:FindFirstChild("HumanoidRootPart")
+	if aRoot then
+		local tool = aChar:FindFirstChildWhichIsA("Tool")
+		local lame = tool and plusGrandeLame(tool)
+		local pl = lame and lame.Position or (aRoot.Position + aRoot.CFrame.LookVector * 2)
+		sonA(Config.Sons.Parade, pl, 0.8, 0.55)
+		rafale(pl, { couleur = Color3.new(1, 1, 1), couleur2 = OR, taille = NS(0.25, 0), vie = NR(0.2, 0.4), vitesse = NR(18, 30), frein = 6 }, 18)
+		eclair(pl, pl + Vector3.new(math.random() - 0.5, -1, math.random() - 0.5) * 3, Color3.new(1, 1, 1))
+		FX.Etourdi(aChar, (Config.Esquive.Parfaite or {}).Etourdi or 1.4)
+	end
+end
+
+-- étoiles qui tournent au-dessus de la tête d'un personnage désarmé
+function FX.Etourdi(character, duree)
+	local tete = character:FindFirstChild("Head")
+	if not tete then return end
+	sonA(Config.Sons.Etourdi, tete.Position, 0.5, 0.7)
+	local etoiles = {}
+	for i = 1, 3 do
+		local e = Instance.new("Part")
+		e.Anchored, e.CanCollide, e.CanQuery, e.CanTouch, e.CastShadow = true, false, false, false, false
+		e.Material, e.Color = Enum.Material.Neon, (i == 2) and Color3.new(1, 1, 1) or OR
+		e.Size = Vector3.new(0.35, 0.35, 0.35)
+		e.Parent = workspace
+		local att = Instance.new("Attachment", e)
+		if not performance() then
+			emetteur(att, { couleur = OR, taille = NS(0.18, 0), vie = NR(0.2, 0.3), vitesse = NR(0, 0.5), debit = 18, lumiere = 1 })
+		end
+		etoiles[i] = e
+	end
+	local fin = os.clock() + duree
+	local conn
+	conn = RunService.RenderStepped:Connect(function()
+		local t = os.clock()
+		if t > fin or not tete.Parent then
+			conn:Disconnect()
+			for _, e in ipairs(etoiles) do
+				tween(e, 0.2, { Size = Vector3.zero, Transparency = 1 })
+				Debris:AddItem(e, 0.25)
 			end
-			task.wait(0.045)
+			return
+		end
+		for i, e in ipairs(etoiles) do
+			local a = t * 6 + i * (math.pi * 2 / 3)
+			e.CFrame = CFrame.new(tete.Position + Vector3.new(math.cos(a) * 1.3, 1.1 + math.sin(t * 8 + i) * 0.15, math.sin(a) * 1.3))
+				* CFrame.Angles(t * 5, t * 3, math.rad(45))
 		end
 	end)
+end
+
+-- « ralenti » sur l'écran du joueur : couleurs qui se figent, flou léger, zoom
+function FX.Ralenti(duree)
+	duree = duree or 0.7
+	local Lighting = game:GetService("Lighting")
+	local cc = Instance.new("ColorCorrectionEffect")
+	cc.Name = "EsquiveParfaite"
+	cc.Saturation, cc.Contrast, cc.Brightness, cc.TintColor = -0.55, 0.25, 0.05, Color3.fromRGB(255, 240, 205)
+	cc.Parent = Lighting
+	tween(cc, duree, { Saturation = 0, Contrast = 0, Brightness = 0, TintColor = Color3.new(1, 1, 1) }, Enum.EasingStyle.Quint)
+	Debris:AddItem(cc, duree + 0.1)
+	if not performance() then
+		local flou = Instance.new("BlurEffect")
+		flou.Size = 10
+		flou.Parent = Lighting
+		tween(flou, duree * 0.8, { Size = 0 }, Enum.EasingStyle.Quint)
+		Debris:AddItem(flou, duree)
+	end
+	local cam = workspace.CurrentCamera
+	local fov = cam.FieldOfView
+	tween(cam, 0.08, { FieldOfView = fov - 8 })
+	task.delay(0.1, function() tween(cam, duree, { FieldOfView = fov }, Enum.EasingStyle.Quint) end)
 end
 
 return FX

@@ -76,6 +76,7 @@ local function attaquer(tool)
 	local now = os.clock()
 	if now - dernier < Config.Combat.Recharge then return end
 	if joueur:GetAttribute("EnPrison") then return end
+	if joueur.Character and joueur.Character:GetAttribute("Etourdi") then return end   -- désarmé par une esquive parfaite
 	combo = (now - dernier < Config.Combat.FenetreCombo) and (combo % 3 + 1) or 1
 	dernier = now
 	joueur:SetAttribute("CouteauxCombo", combo)          -- lu par l'interface (« COMBO x2 »)
@@ -104,6 +105,7 @@ end
 
 ------------------------------------------------------------------ esquive
 local derniereEsquive = 0
+local rechargeEsquive = Config.Esquive.Recharge
 local function esquiver(_, etat)
 	if etat ~= Enum.UserInputState.Begin then return Enum.ContextActionResult.Pass end
 	if not Config.Esquive.Active or joueur:GetAttribute("EnPrison") then return Enum.ContextActionResult.Pass end
@@ -112,8 +114,9 @@ local function esquiver(_, etat)
 	local root = char and char:FindFirstChild("HumanoidRootPart")
 	if not hum or not root or hum.Health <= 0 then return Enum.ContextActionResult.Pass end
 	local now = os.clock()
-	if now - derniereEsquive < Config.Esquive.Recharge then return Enum.ContextActionResult.Sink end
+	if now - derniereEsquive < rechargeEsquive then return Enum.ContextActionResult.Sink end
 	derniereEsquive = now
+	rechargeEsquive = Config.Esquive.Recharge
 	joueur:SetAttribute("EsquiveDebut", now)             -- lu par l'interface (recharge sur le bouton ESQUIVE)
 	joueur:SetAttribute("EsquiveRecharge", Config.Esquive.Recharge)
 
@@ -222,5 +225,33 @@ RFX.OnClientEvent:Connect(function(type_, ...)
 	elseif type_ == "Esquive" then
 		local char, equipe = ...
 		FX.Esquive(char, equipe)
+	elseif type_ == "EsquiveParfaite" then
+		local vChar, aChar, equipe, victime, attaquant = ...
+		FX.EsquiveParfaite(vChar, aChar, equipe)
+		if victime == joueur then
+			-- la vrille remplace le saut d'esquive en cours
+			local hum = vChar and vChar:FindFirstChildOfClass("Humanoid")
+			if hum then
+				for _, nom in ipairs({ "EsquiveDroite", "EsquiveGauche", "EsquiveArriere" }) do
+					local t = pistes[hum] and pistes[hum][nom]
+					if t and t.IsPlaying then t:Stop(0.08) end
+				end
+				local t = piste(hum, "EsquiveParfaite")
+				if t then t:Play(0.06) end
+				hum.AutoRotate = false
+				task.delay(0.6, function() if hum.Parent then hum.AutoRotate = true end end)
+			end
+			FX.Ralenti(0.7)
+			FX.Secousse(0.25, 0.15)
+			-- esquive rechargée (presque) tout de suite
+			rechargeEsquive = Config.Esquive.Parfaite.Recharge or 0.3
+			derniereEsquive = os.clock()
+			joueur:SetAttribute("EsquiveDebut", derniereEsquive)
+			joueur:SetAttribute("EsquiveRecharge", rechargeEsquive)
+			joueur:SetAttribute("EsquiveParfaite", os.clock())     -- l'interface affiche « ESQUIVE PARFAITE ! »
+		elseif attaquant == joueur then
+			FX.Secousse(0.5, 0.25)
+			joueur:SetAttribute("Desarme", os.clock())             -- l'interface affiche « DÉSARMÉ ! »
+		end
 	end
 end)

@@ -39,6 +39,7 @@ Config.Combat = {
 	FenetreCombo = 0.9,      -- temps pour enchaîner le coup suivant (combo 1-2-3)
 	Degats = 0,              -- 0 = pas de dégâts (le jeu gère la capture via l'événement « Touche »)
 	Recul = 38,              -- recul de la victime
+	DelaiImpact = 0.12,      -- le coup touche 0,12 s après le clic (au moment où la lame passe) : on peut encore esquiver
 	DonnerCouteau = true,    -- donne le couteau de l'équipe à l'apparition (mettre false si le jeu le fait déjà)
 }
 
@@ -49,6 +50,15 @@ Config.Esquive = {
 	Duree = 0.18,
 	Invincible = 0.35,       -- invincibilité (s)
 	Recharge = 1.6,
+	-- ESQUIVE PARFAITE : esquiver juste avant (ou pendant) le coup d'un ennemi
+	Parfaite = {
+		Active = true,
+		Fenetre = 0.3,       -- l'esquive doit commencer au plus 0,3 s avant le coup (ou pendant le DelaiImpact)
+		Invincible = 1.0,    -- tu es intouchable 1 s
+		Etourdi = 1.4,       -- l'attaquant est DÉSARMÉ : il ne peut plus attaquer pendant 1,4 s et il est ralenti
+		Ralenti = 0.55,      -- vitesse de marche de l'attaquant étourdi (x 0,55)
+		Recharge = 0.3,      -- l'esquive est rechargée presque tout de suite après une esquive parfaite
+	},
 }
 
 -- Position du couteau dans la main (à ajuster en Play si besoin)
@@ -62,6 +72,7 @@ Config.Animations = {
 	EsquiveDroite = "", EsquiveGauche = "", EsquiveArriere = "",   -- sauts d'esquive (Action3)
 	Course = "",                          -- sprint, remplace la course de Roblox (Movement)
 	Garde = "",                           -- garde couteau en main (Action, haut du corps, boucle)
+	EsquiveParfaite = "",                 -- vrille aérienne + atterrissage super-héros + riposte (Action4)
 }
 
 ----------------------------------------------------------------- PALETTE
@@ -99,6 +110,9 @@ Config.Sons = {
 	Impact = "rbxasset://sounds/swordslash.wav",
 	Electrique = "rbxasset://sounds/electronicpingshort.wav",
 	Esquive = "rbxasset://sounds/swordlunge.wav",
+	Parade = "rbxasset://sounds/swordslash.wav",          -- choc de lame dans le vide (joué grave)
+	Parfaite = "rbxasset://sounds/electronicpingshort.wav", -- « ding » de l'esquive parfaite
+	Etourdi = "rbxasset://sounds/electronicpingshort.wav",
 }
 
 ----------------------------------------------------------------- COUTEAUX + EFFETS (VFX)

@@ -584,6 +584,55 @@ function HUD.Init(Ctx)
 		task.delay(0.9, function() S.Tween(combo, 0.3, { TextTransparency = 1 }) end)
 	end)
 
+	------------------------------------------------------------ ESQUIVE PARFAITE ! / DÉSARMÉ !
+	local function banniere(texte, couleur, sousTexte)
+		local zone = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.3), Size = UDim2.fromOffset(760, 140),
+			BackgroundTransparency = 1, ZIndex = 30 }, commun)
+		-- bande lumineuse qui s'ouvre
+		local bande = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(0, 74),
+			BackgroundColor3 = couleur, BackgroundTransparency = 0.25, BorderSizePixel = 0, ZIndex = 30, Rotation = -4 }, zone)
+		new("UIGradient", { Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.2, 0.15),
+			NumberSequenceKeypoint.new(0.8, 0.15), NumberSequenceKeypoint.new(1, 1) }) }, bande)
+		local trait = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(0, 2),
+			BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 31, Rotation = -4 }, zone)
+		local titreB = S.Texte(zone, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.46), Size = UDim2.fromOffset(700, 62),
+			Text = texte, TextColor3 = Color3.new(1, 1, 1), Rotation = -4, ZIndex = 32, TextTransparency = 1 }, "titre")
+		local ech = new("UIScale", { Scale = 2.4 }, titreB)
+		local sous = sousTexte and S.Texte(zone, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.5, 30), Size = UDim2.fromOffset(500, 20),
+			Text = sousTexte, TextColor3 = couleur, Rotation = -4, ZIndex = 32, TextTransparency = 1 })
+		-- ombre colorée décalée derrière le titre (effet « choc »)
+		local echo = S.Texte(zone, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 6, 0.46, 5), Size = UDim2.fromOffset(700, 62),
+			Text = texte, TextColor3 = couleur, Rotation = -4, ZIndex = 31, TextTransparency = 1, Contour = false }, "titre")
+		S.Tween(bande, 0.25, { Size = UDim2.fromOffset(820, 74) }, Enum.EasingStyle.Quart)
+		S.Tween(trait, 0.35, { Size = UDim2.fromOffset(900, 2) }, Enum.EasingStyle.Quart)
+		S.Tween(titreB, 0.12, { TextTransparency = 0 })
+		S.Tween(echo, 0.2, { TextTransparency = 0.2 })
+		S.Tween(ech, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
+		if sous then task.delay(0.15, function() S.Tween(sous, 0.25, { TextTransparency = 0 }) end) end
+		Ctx.Onde(zone, UDim2.fromScale(0.5, 0.5), couleur, 620, 0.55)
+		Ctx.Etincelles(zone, UDim2.fromScale(0.5, 0.5), couleur, 18)
+		-- flash de bord d'écran
+		local flash = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = couleur, BackgroundTransparency = 0.55, ZIndex = 29 }, commun)
+		new("UIGradient", { Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.18, 1),
+			NumberSequenceKeypoint.new(0.82, 1), NumberSequenceKeypoint.new(1, 0) }) }, flash)
+		S.Tween(flash, 0.6, { BackgroundTransparency = 1 })
+		task.delay(1.15, function()
+			S.Tween(zone, 0.3, { Position = UDim2.fromScale(0.5, 0.25) })
+			for _, o in ipairs({ titreB, echo, sous }) do if o then S.Tween(o, 0.3, { TextTransparency = 1 }) end end
+			S.Tween(bande, 0.3, { Size = UDim2.fromOffset(820, 0), BackgroundTransparency = 1 })
+			S.Tween(trait, 0.3, { BackgroundTransparency = 1 })
+		end)
+		task.delay(1.5, function() zone:Destroy(); flash:Destroy() end)
+	end
+	joueur:GetAttributeChangedSignal("EsquiveParfaite"):Connect(function()
+		banniere("ESQUIVE PARFAITE !", S.C.Or, "INTOUCHABLE · ENNEMI DÉSARMÉ")
+		S.Son("Gain", 1.6, 0.5)
+	end)
+	joueur:GetAttributeChangedSignal("Desarme"):Connect(function()
+		banniere("DÉSARMÉ !", Color3.fromRGB(255, 70, 70), "TU NE PEUX PLUS FRAPPER UN INSTANT")
+		S.Son("Erreur")
+	end)
+
 	------------------------------------------------------------ bascule lobby / manche (avec transition)
 	local enManche = nil
 	local function majMode()
