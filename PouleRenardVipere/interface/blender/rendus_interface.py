@@ -141,7 +141,7 @@ def rendre(nom):
 
 # ------------------------------------------------------------------ caisse
 def caisse(equipe):
-    vider(); sc = scene_rendu()
+    sc = scene_icone()
     e = EQUIPES[equipe]
     bois = mat("bois", e["c1"], 0.0, 0.45)
     fonce = mat("fonce", e["c2"], 0.0, 0.55)
@@ -178,7 +178,7 @@ def caisse(equipe):
     pl = bpy.context.active_object; pl.scale = (L - 0.35, P - 0.35, 1); pl.data.materials.append(lueur)
     lumiere("dedans", 'POINT', (0, 0, H + 0.2), 400, e["glow"])
     # couteau planté
-    k = importer_couteau(e["couteau"], 3.0)
+    k = importer_couteau(e["couteau"], 3.0, sans_contour=True)
     k.location = (0.25, 0.05, H - 1.0)
     k.rotation_euler = (math.radians(8), math.radians(-24), 0)
     # étincelles
@@ -190,9 +190,8 @@ def caisse(equipe):
                                               location=(r * math.cos(a) * 0.8, r * math.sin(a) * 0.5, H + random.uniform(0.1, 2.0)))
         bpy.context.active_object.data.materials.append(etin)
     # lumières studio
-    lumiere("cle", 'AREA', (-4, -5, 6), 1500, (1, 0.95, 0.9), 4, (0, 0, 0.8))
-    lumiere("contre", 'AREA', (4, 4, 4), 900, e["glow"], 3, (0, 0, 1))
-    lumiere("remplissage", 'AREA', (5, -4, 1.5), 300, (0.6, 0.7, 1.0), 4, (0, 0, 0.8))
+    ambiance_icone((0, 0, 1.1), 1.2)
+    lumiere("contre", 'AREA', (4, 4, 4), 700, e["glow"], 3, (0, 0, 1))
     camera((4.3, -6.2, 4.2), (0, 0, 1.15), 50)
     rendre("caisse_" + equipe)
 
@@ -256,7 +255,7 @@ def icone_engrenage():
     rendre("icone_parametres")
 
 def icone_trophee():
-    vider(); scene_rendu((512, 512))
+    scene_icone()
     m = mat("or", (1.0, 0.72, 0.15), 1.0, 0.2)
     rouge = mat("rouge", (0.8, 0.1, 0.1), 0.0, 0.4)
     bpy.ops.mesh.primitive_cone_add(vertices=48, radius1=0.35, radius2=0.95, depth=1.3, location=(0, 0, 1.45))
@@ -269,13 +268,12 @@ def icone_trophee():
     bpy.context.active_object.data.materials.append(m)
     boite("socle", (1.2, 0.8, 0.4), (0, 0, 0.2), rouge, 0.06)
     boite("plaque", (0.9, 0.05, 0.22), (0, -0.42, 0.2), m, 0.02)
-    lumiere("cle", 'AREA', (-3, -4, 5), 900, (1, 1, 1), 3, (0, 0, 1))
-    lumiere("contre", 'AREA', (3, 3, 3), 600, (1, 0.8, 0.4), 3, (0, 0, 1))
+    ambiance_icone((0, 0, 0.9), 1.0)
     camera((2.2, -5.5, 2.4), (0, 0, 1.1), 50, ortho=3.6)
     rendre("icone_classement")
 
 def icone_cadeau():
-    vider(); scene_rendu((512, 512))
+    scene_icone()
     rouge = mat("rouge", (0.85, 0.1, 0.25), 0.0, 0.35)
     ruban = mat("ruban", (1.0, 0.8, 0.15), 0.6, 0.25)
     boite("boite", (1.6, 1.6, 1.2), (0, 0, 0.6), rouge, 0.06)
@@ -285,8 +283,7 @@ def icone_cadeau():
     for a in (-1, 1):
         bpy.ops.mesh.primitive_torus_add(major_radius=0.32, minor_radius=0.1, location=(a * 0.3, 0, 1.75), rotation=(math.radians(90), math.radians(a * 25), 0))
         bpy.context.active_object.data.materials.append(ruban); bpy.ops.object.shade_smooth()
-    lumiere("cle", 'AREA', (-3, -4, 5), 900, (1, 1, 1), 3, (0, 0, 0.8))
-    lumiere("contre", 'AREA', (3, 3, 3), 600, (1, 0.6, 0.8), 3, (0, 0, 0.8))
+    ambiance_icone((0, 0, 0.9), 1.0)
     camera((3, -4.5, 3.2), (0, 0, 0.85), 50, ortho=3.6)
     rendre("icone_cadeau")
 
@@ -594,9 +591,384 @@ def eclats():
     camera((0, -10, 0), (0, 0, 0), 50, ortho=6.2)
     rendre("eclats_grille")
 
+# ------------------------------------------------------------------ icônes de l'interface (même ambiance que la scène)
+def ambiance_icone(cible=(0, 0, 0.8), dist=1.0):
+    """Éclairage commun : clé froide, contre-jour violet (portail), touches rouge (Poules) et verte (Vipères)."""
+    c = Vector(cible)
+    lumiere("cle", 'AREA', tuple(c + Vector((-3, -5, 4)) * dist), 1100 * dist ** 2, (0.9, 0.9, 1.0), 4, tuple(c))
+    lumiere("portail", 'AREA', tuple(c + Vector((0, 5, 3)) * dist), 1600 * dist ** 2, (0.7, 0.4, 1.0), 4, tuple(c))
+    lumiere("poule", 'AREA', tuple(c + Vector((-5, 1, 1)) * dist), 650 * dist ** 2, (1.0, 0.3, 0.12), 3, tuple(c))
+    lumiere("vipere", 'AREA', tuple(c + Vector((5, 1, 1)) * dist), 650 * dist ** 2, (0.35, 1.0, 0.2), 3, tuple(c))
+
+def scene_icone():
+    vider(); sc = scene_rendu((640, 640), transparent=True)
+    sc.view_settings.view_transform = 'Standard'; sc.view_settings.look = 'Medium High Contrast'
+    sc.cycles.samples = max(ECHANTILLONS, 64)
+    return sc
+
+def icone_caisse():
+    sc = scene_icone()
+    bois = mat("bois", (0.32, 0.12, 0.6), 0.0, 0.4)
+    fonce = mat("fonce", (0.08, 0.04, 0.16), 0.0, 0.5)
+    orm = mat("or", (1.0, 0.72, 0.18), 1.0, 0.22)
+    lueur = mat("lueur", (1.0, 0.8, 0.3), 0.0, 0.3, (1.0, 0.75, 0.25), 20.0)
+    L, P, H = 2.4, 1.6, 1.25
+    boite("fond", (L, P, 0.15), (0, 0, 0.075), bois)
+    for nom, t, pos in (("avant", (L, 0.15, H), (0, -P / 2 + 0.075, H / 2)), ("arriere", (L, 0.15, H), (0, P / 2 - 0.075, H / 2)),
+                        ("g", (0.15, P, H), (-L / 2 + 0.075, 0, H / 2)), ("d", (0.15, P, H), (L / 2 - 0.075, 0, H / 2))):
+        boite(nom, t, pos, bois)
+    for z in (0.22, H - 0.2):
+        boite("bande", (L + 0.06, P + 0.06, 0.16), (0, 0, z), fonce, 0.03)
+    for x in (-1, 1):
+        for y in (-1, 1):
+            boite("coin", (0.3, 0.3, H + 0.08), (x * (L / 2 - 0.08), y * (P / 2 - 0.08), H / 2), orm, 0.05)
+    boite("serrure", (0.42, 0.12, 0.5), (0, -P / 2 - 0.04, H - 0.32), orm, 0.06)
+    couv = bpy.data.objects.new("couvercle", None); sc.collection.objects.link(couv); couv.location = (0, P / 2, H)
+    for o in (boite("c1", (L + 0.08, P + 0.08, 0.22), (0, -P / 2, 0.11), bois), boite("c2", (L + 0.12, P + 0.12, 0.1), (0, -P / 2, 0.05), fonce, 0.03),
+              boite("c3", (0.32, P + 0.12, 0.26), (-(L / 2 - 0.08), -P / 2, 0.13), orm, 0.05), boite("c4", (0.32, P + 0.12, 0.26), ((L / 2 - 0.08), -P / 2, 0.13), orm, 0.05)):
+        o.parent = couv
+    couv.rotation_euler = (math.radians(-55), 0, 0)
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(0, 0, H - 0.15)); pl = bpy.context.active_object
+    pl.scale = (L - 0.35, P - 0.35, 1); pl.data.materials.append(lueur)
+    lumiere("dedans", 'POINT', (0, 0, H + 0.3), 250, (1.0, 0.8, 0.3))
+    k = importer_couteau("RenardLegendaire", 2.6, sans_contour=True)
+    k.location = (0.2, 0.05, H - 0.8); k.rotation_euler = (math.radians(8), math.radians(-22), 0)
+    ambiance_icone((0, 0, 1.1), 1.2)
+    camera((4.2, -6.4, 4.0), (0, 0, 1.25), 50)
+    rendre("icone_caisses")
+
+def icone_couteaux():
+    scene_icone()
+    for kid, ang, x in (("PouleRoyal", 38, -0.15), ("ViperRoyal", -38, 0.15)):
+        k = importer_couteau(kid, 3.0, sans_contour=True)
+        k.rotation_euler = (math.radians(90), math.radians(ang), 0)
+        k.location = (x - math.sin(math.radians(ang)) * 1.5, 0, -math.cos(math.radians(ang)) * 1.5 + 0.2)
+        k.rotation_euler = (0, math.radians(ang), 0)
+    ambiance_icone((0, 0, 0.2), 1.0)
+    camera((0, -9, 0.6), (0, 0, 0.2), 50, ortho=3.6)
+    rendre("icone_couteaux")
+
+def icone_parametres():
+    scene_icone()
+    m = mat("metal", (0.55, 0.52, 0.66), 1.0, 0.28)
+    neon = mat("neon", (1.0, 0.75, 0.2), 0, 0.3, (1.0, 0.7, 0.2), 6)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=1.0, depth=0.4)
+    g = bpy.context.active_object
+    for i in range(9):
+        a = 2 * math.pi * i / 9
+        dent = boite("dent", (0.42, 0.45, 0.4), (1.1 * math.cos(a), 1.1 * math.sin(a), 0), m, 0.06, (0, 0, a))
+        dent.select_set(True)
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in bpy.context.scene.objects:
+        if o.type == 'MESH': o.select_set(True)
+    bpy.context.view_layer.objects.active = g; bpy.ops.object.join()
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.42, depth=0.8)
+    trou = bpy.context.active_object
+    bo = g.modifiers.new("trou", 'BOOLEAN'); bo.object = trou; bo.operation = 'DIFFERENCE'
+    bpy.context.view_layer.objects.active = g; bpy.ops.object.modifier_apply(modifier="trou")
+    bpy.data.objects.remove(trou)
+    bv = g.modifiers.new("b", 'BEVEL'); bv.width = 0.05; bv.segments = 3
+    g.data.materials.clear(); g.data.materials.append(m); bpy.ops.object.shade_smooth()
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.62, minor_radius=0.05, location=(0, 0, 0.21))
+    bpy.context.active_object.data.materials.append(neon)
+    for o in bpy.context.scene.objects:
+        if o.type == 'MESH': o.rotation_euler = (math.radians(62), 0, math.radians(12))
+    ambiance_icone((0, 0, 0), 1.0)
+    camera((0, -7, 0.4), (0, 0, 0), 50, ortho=3.1)
+    rendre("icone_parametres")
+
+def icone_boutique():
+    scene_icone()
+    m_or = mat("or", (1.0, 0.70, 0.12), 1.0, 0.2); m_bord = mat("bord", (1.0, 0.82, 0.35), 1.0, 0.15)
+    sac = mat("sac", (0.42, 0.16, 0.7), 0.0, 0.5); corde = mat("corde", (1.0, 0.75, 0.2), 0.5, 0.35)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=1.0, location=(0, 0, 0.95))
+    s_ = bpy.context.active_object; s_.scale = (1.0, 0.9, 1.0); s_.data.materials.append(sac); bpy.ops.object.shade_smooth()
+    bpy.ops.mesh.primitive_cone_add(vertices=32, radius1=0.35, radius2=0.65, depth=0.6, location=(0, 0, 2.05))
+    c = bpy.context.active_object; c.data.materials.append(sac); bpy.ops.object.shade_smooth()
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.38, minor_radius=0.08, location=(0, 0, 1.78))
+    bpy.context.active_object.data.materials.append(corde)
+    random.seed(2)
+    for i in range(9):
+        a = random.uniform(-2.6, -0.5); r = random.uniform(1.0, 1.6)
+        piece("p%d" % i, (r * math.cos(a) * 0.9, r * math.sin(a) * 0.7, random.uniform(0.06, 0.6)),
+              (random.uniform(-0.8, 0.8), random.uniform(-0.8, 0.8), 0), m_or, m_bord)
+    ambiance_icone((0, 0, 0.9), 1.1)
+    camera((2.6, -6.0, 2.6), (0, 0, 0.95), 50)
+    rendre("icone_boutique")
+
+def icone_quetes():
+    scene_icone()
+    papier = mat("papier", (0.95, 0.86, 0.62), 0.0, 0.6); bois = mat("bois", (0.35, 0.18, 0.08), 0.0, 0.5)
+    sceau = mat("sceau", (0.85, 0.08, 0.1), 0.2, 0.35); encre = mat("encre", (0.25, 0.15, 0.1), 0, 0.8)
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(0, 0, 0))
+    f = bpy.context.active_object; f.scale = (1.6, 2.0, 1)
+    bpy.ops.object.transform_apply(scale=True)
+    sub = f.modifiers.new("s", 'SUBSURF'); sub.levels = 3
+    sol = f.modifiers.new("e", 'SOLIDIFY'); sol.thickness = 0.03
+    f.data.materials.append(papier)
+    for y in (-1.0, 1.0):
+        bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.2, depth=1.9, location=(0, y, 0.12), rotation=(0, math.radians(90), 0))
+        bpy.context.active_object.data.materials.append(papier); bpy.ops.object.shade_smooth()
+        for x in (-1, 1):
+            bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=0.12, depth=0.25, location=(x * 1.05, y, 0.12), rotation=(0, math.radians(90), 0))
+            bpy.context.active_object.data.materials.append(bois)
+    for i in range(4):
+        boite("ligne", (1.0 - 0.15 * (i % 2), 0.06, 0.01), (-0.05, -0.45 + i * 0.28, 0.02), encre, 0)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.28, depth=0.08, location=(0.5, 0.55, 0.06))
+    bpy.context.active_object.data.materials.append(sceau)
+    for o in bpy.context.scene.objects:
+        if o.type == 'MESH':
+            o.matrix_world = Matrix.Rotation(math.radians(58), 4, 'X') @ Matrix.Rotation(math.radians(-14), 4, 'Z') @ o.matrix_world
+    ambiance_icone((0, 0, 0), 1.0)
+    camera((0, -7, 0.3), (0, 0, 0), 50, ortho=3.4)
+    rendre("icone_quetes")
+
+def icone_piece():
+    scene_icone()
+    m_or = mat("or", (1.0, 0.70, 0.12), 1.0, 0.2); m_bord = mat("bord", (1.0, 0.85, 0.4), 1.0, 0.15)
+    piece("p", (0, 0, 0), (math.radians(80), 0, math.radians(14)), m_or, m_bord)
+    etoile = [(0.0, 0.3), (0.07, 0.1), (0.29, 0.09), (0.11, -0.04), (0.18, -0.25), (0.0, -0.12), (-0.18, -0.25),
+              (-0.11, -0.04), (-0.29, 0.09), (-0.07, 0.1)]
+    e = prisme("etoile", etoile, 0.05, m_bord, 0.015)
+    e.matrix_world = Matrix.Rotation(math.radians(14), 4, 'Z') @ Matrix.Rotation(math.radians(-10), 4, 'X') @ Matrix.Translation((0, -0.07, 0))
+    lumiere("cle", 'AREA', (-2, -4, 3), 900, (1, 0.95, 0.85), 3, (0, 0, 0))
+    lumiere("face", 'AREA', (1, -4, -1), 350, (1, 0.9, 0.7), 3, (0, 0, 0))
+    lumiere("portail", 'AREA', (0, 4, 2), 600, (0.7, 0.4, 1.0), 3, (0, 0, 0))
+    camera((0, -5, 0.3), (0, 0, 0), 50, ortho=1.25)
+    rendre("icone_piece")
+
+def icone_sprint():
+    scene_icone()
+    jaune = mat("jaune", (1.0, 0.8, 0.1), 0.2, 0.3, (1.0, 0.6, 0.05), 0.6)
+    pts = [(0.15, 1.3), (-0.75, -0.05), (-0.1, -0.05), (-0.35, -1.3), (0.8, 0.25), (0.1, 0.25), (0.45, 1.3)]
+    me = bpy.data.meshes.new("eclair")
+    v = [(x, -0.18, z) for x, z in pts] + [(x, 0.18, z) for x, z in pts]
+    n = len(pts)
+    faces = [list(range(n))[::-1], list(range(n, 2 * n))] + [[i, (i + 1) % n, n + (i + 1) % n, n + i] for i in range(n)]
+    me.from_pydata(v, [], faces); me.update()
+    o = bpy.data.objects.new("eclair", me); bpy.context.scene.collection.objects.link(o)
+    bv = o.modifiers.new("b", 'BEVEL'); bv.width = 0.06; bv.segments = 3
+    o.data.materials.append(jaune)
+    o.rotation_euler = (0, math.radians(-12), math.radians(-18))
+    ambiance_icone((0, 0, 0), 1.0)
+    camera((0, -6, 0.2), (0, 0, 0), 50, ortho=3.0)
+    rendre("icone_sprint")
+
+def prisme(nom, pts, ep, materiau, biseau=0.05):
+    """Forme 2D (x, z) extrudée sur Y."""
+    me = bpy.data.meshes.new(nom)
+    n = len(pts)
+    v = [(x, -ep / 2, z) for x, z in pts] + [(x, ep / 2, z) for x, z in pts]
+    faces = [list(range(n))[::-1], list(range(n, 2 * n))] + [[i, (i + 1) % n, n + (i + 1) % n, n + i] for i in range(n)]
+    me.from_pydata(v, [], faces); me.update()
+    o = bpy.data.objects.new(nom, me); bpy.context.scene.collection.objects.link(o)
+    if biseau:
+        bv = o.modifiers.new("b", 'BEVEL'); bv.width = biseau; bv.segments = 3
+    o.data.materials.append(materiau)
+    return o
+
+def icone_esquive():
+    """Double chevron qui file vers la droite + traits de vitesse."""
+    scene_icone()
+    cyan = mat("cyan", (0.35, 0.85, 1.0), 0.1, 0.3, (0.2, 0.6, 1.0), 0.7)
+    blanc = mat("blanc", (0.85, 0.95, 1.0), 0.1, 0.3, (0.6, 0.85, 1.0), 0.5)
+    chevron = [(-0.35, 0.9), (0.15, 0.9), (0.75, 0.0), (0.15, -0.9), (-0.35, -0.9), (0.25, 0.0)]
+    prisme("c1", [(x - 0.55, z) for x, z in chevron], 0.4, cyan)
+    prisme("c2", [(x + 0.35, z) for x, z in chevron], 0.4, cyan)
+    for z, l in ((0.45, 0.9), (0.0, 1.3), (-0.45, 0.9)):
+        prisme("trait", [(-1.25 - l, z + 0.07), (-1.15, z + 0.07), (-1.15, z - 0.07), (-1.25 - l, z - 0.07)], 0.12, blanc, 0.03)
+    for o in bpy.context.scene.objects:
+        if o.type == 'MESH': o.rotation_euler = (0, math.radians(-8), math.radians(-14))
+    ambiance_icone((0, 0, 0), 1.0)
+    camera((0, -6, 0.3), (-0.4, 0, 0), 50, ortho=3.6)
+    rendre("icone_esquive")
+
+def icone_frapper():
+    scene_icone()
+    k = importer_couteau("RenardBase", 3.0, sans_contour=True)
+    k.rotation_euler = (0, math.radians(40), 0)              # lame vers le haut-droit
+    k.location = (-1.5 * math.sin(math.radians(40)), 0, -1.5 * math.cos(math.radians(40)))
+    ambiance_icone((0, 0, 0), 1.0)
+    camera((0, -9, 0.3), (0, 0, 0.0), 50, ortho=3.2)
+    rendre("icone_frapper")
+
+ICONES = (icone_caisse, icone_couteaux, icone_parametres, icone_boutique, icone_quetes, icone_piece,
+          icone_sprint, icone_esquive, icone_frapper, icone_cadeau, icone_trophee)
+
+# ------------------------------------------------------------------ coffres détaillés (boutique / ouverture)
+COFFRES = {
+    #              métal (accents)        runes / lumière          couteau
+    "Poules":     dict(metal=(0.75, 0.08, 0.06), rune=(1.0, 0.25, 0.1), couteau="PouleRoyal"),
+    "Renards":    dict(metal=(0.95, 0.38, 0.08), rune=(1.0, 0.55, 0.1), couteau="RenardLegendaire"),
+    "Viperes":    dict(metal=(0.12, 0.55, 0.12), rune=(0.4, 1.0, 0.2), couteau="ViperRoyal"),
+    "Legendaire": dict(metal=(1.0, 0.72, 0.15), rune=(1.0, 0.85, 0.35), couteau="PouleGeant"),
+}
+
+def materiau_bois(nom):
+    """Bois sombre en planches (bandes + fentes + grain)."""
+    m = bpy.data.materials.new(nom); m.use_nodes = True
+    nt = m.node_tree; b = nt.nodes["Principled BSDF"]
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    onde = nt.nodes.new("ShaderNodeTexWave"); onde.wave_type = 'BANDS'; onde.bands_direction = 'Z'
+    onde.inputs["Scale"].default_value = 2.2; onde.inputs["Distortion"].default_value = 0.0
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].position = 0.03; ramp.color_ramp.elements[0].color = (0.015, 0.008, 0.006, 1)
+    ramp.color_ramp.elements[1].position = 0.09; ramp.color_ramp.elements[1].color = (0.13, 0.06, 0.03, 1)
+    grain = nt.nodes.new("ShaderNodeTexNoise"); grain.inputs["Scale"].default_value = 40; grain.inputs["Detail"].default_value = 6
+    mixr = nt.nodes.new("ShaderNodeMix"); mixr.data_type = 'RGBA'; mixr.blend_type = 'MULTIPLY'; mixr.inputs[0].default_value = 0.35
+    nt.links.new(tc.outputs["Object"], onde.inputs["Vector"]); nt.links.new(onde.outputs["Fac"], ramp.inputs[0])
+    nt.links.new(tc.outputs["Object"], grain.inputs["Vector"])
+    nt.links.new(ramp.outputs[0], mixr.inputs[6]); nt.links.new(grain.outputs["Color"], mixr.inputs[7])
+    nt.links.new(mixr.outputs[2], b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = 0.55
+    bump = nt.nodes.new("ShaderNodeBump"); bump.inputs["Strength"].default_value = 0.35
+    nt.links.new(onde.outputs["Fac"], bump.inputs["Height"]); nt.links.new(bump.outputs[0], b.inputs["Normal"])
+    return m
+
+def coffre(equipe, ouverture=0.0, sc=None):
+    """Coffre au trésor détaillé. ouverture : 0 fermé -> 1 grand ouvert (lumière + couteau qui monte)."""
+    e = COFFRES[equipe]
+    bois = materiau_bois("bois_" + equipe)
+    fer = mat("fer", (0.06, 0.06, 0.07), 0.9, 0.35)
+    accent = mat("accent", e["metal"], 1.0, 0.25)
+    orm = mat("or", (1.0, 0.72, 0.18), 1.0, 0.2)
+    rune = mat("rune", e["rune"], 0, 0.3, e["rune"], 6 + 14 * ouverture)
+    interieur = mat("interieur", (0.02, 0.01, 0.03), 0, 0.8, e["rune"], 2 + 25 * ouverture)
+    L, P, H, R = 2.6, 1.7, 1.25, 0.85
+    objs = []
+    def ajoute(o): objs.append(o); return o
+    # caisse (creuse) avec bords biseautés
+    for nom, t, pos in (("fond", (L, P, 0.16), (0, 0, 0.08)), ("av", (L, 0.16, H), (0, -P / 2 + 0.08, H / 2)),
+                        ("ar", (L, 0.16, H), (0, P / 2 - 0.08, H / 2)), ("g", (0.16, P, H), (-L / 2 + 0.08, 0, H / 2)),
+                        ("d", (0.16, P, H), (L / 2 - 0.08, 0, H / 2))):
+        ajoute(boite(nom, t, pos, bois, 0.03))
+    ajoute(boite("dedans", (L - 0.32, P - 0.32, 0.04), (0, 0, H - 0.18), interieur, 0))
+    # sangles de fer + rivets
+    for x in (-0.82, 0.82):
+        ajoute(boite("sangle", (0.2, P + 0.06, H + 0.04), (x, 0, H / 2), fer, 0.02))
+        for z in (0.25, 0.65, 1.05):
+            for y in (-P / 2 - 0.04, P / 2 + 0.04):
+                bpy.ops.mesh.primitive_uv_sphere_add(radius=0.045, location=(x, y, z)); r = bpy.context.active_object
+                r.data.materials.append(orm); bpy.ops.object.shade_smooth(); ajoute(r)
+    ajoute(boite("ceinture", (L + 0.06, P + 0.06, 0.14), (0, 0, 0.16), accent, 0.03))
+    ajoute(boite("ceinture2", (L + 0.06, P + 0.06, 0.12), (0, 0, H - 0.06), accent, 0.03))
+    # coins dorés
+    for x in (-1, 1):
+        for y in (-1, 1):
+            for z in (0.12, H - 0.12):
+                ajoute(boite("coin", (0.26, 0.26, 0.26), (x * (L / 2 - 0.05), y * (P / 2 - 0.05), z), orm, 0.06))
+    # emblème lumineux en losange (contour + point central) de chaque côté de la serrure
+    r_l = 0.15
+    for cx in (-0.45, 0.45):
+        for sx in (-1, 1):
+            for sz in (-1, 1):
+                rot_y = math.radians(45 if sx * sz > 0 else -45)
+                ajoute(boite("rune", (r_l * 1.414, 0.02, 0.03), (cx + sx * r_l / 2, -P / 2 - 0.005, 0.62 + sz * r_l / 2), rune, 0, (0, rot_y, 0)))
+        ajoute(boite("rune_c", (0.06, 0.02, 0.06), (cx, -P / 2 - 0.005, 0.62), rune, 0, (0, math.radians(45), 0)))
+    # serrure (plaque + anneau) aux couleurs
+    ajoute(boite("plaque", (0.5, 0.08, 0.55), (0, -P / 2 - 0.04, H - 0.3), orm, 0.05))
+    ajoute(boite("trou", (0.12, 0.02, 0.2), (0, -P / 2 - 0.085, H - 0.35), rune, 0))
+    # couvercle bombé (demi-cylindre) articulé à l'arrière
+    pivot = bpy.data.objects.new("pivot", None); bpy.context.scene.collection.objects.link(pivot)
+    pivot.location = (0, P / 2, H)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=R, depth=L, location=(0, 0, 0), rotation=(0, math.radians(90), 0))
+    c = bpy.context.active_object
+    bpy.ops.object.transform_apply(rotation=True)
+    bm = bmesh.new(); bm.from_mesh(c.data)
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, 0), plane_no=(0, 0, -1), clear_outer=True)
+    bmesh.ops.contextual_create(bm, geom=[ed for ed in bm.edges if ed.is_boundary])
+    bm.to_mesh(c.data); bm.free()
+    c.scale = (1, P / (2 * R), 0.62); bpy.ops.object.transform_apply(scale=True)
+    bv = c.modifiers.new("b", 'BEVEL'); bv.width = 0.03; bv.segments = 2
+    c.data.materials.append(bois); bpy.ops.object.shade_smooth()
+    c.location = (0, -P / 2, 0); c.parent = pivot; ajoute(c)
+    for x in (-0.82, 0.82):
+        bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=R + 0.04, depth=0.2, location=(0, 0, 0), rotation=(0, math.radians(90), 0))
+        sg = bpy.context.active_object
+        bpy.ops.object.transform_apply(rotation=True)
+        bm = bmesh.new(); bm.from_mesh(sg.data)
+        bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, 0), plane_no=(0, 0, -1), clear_outer=True)
+        bm.to_mesh(sg.data); bm.free()
+        sg.scale = (1, (P + 0.08) / (2 * R + 0.08), 0.64); bpy.ops.object.transform_apply(scale=True)
+        bmesh_ok = True
+        sg.data.materials.append(fer); bpy.ops.object.shade_smooth()
+        sg.location = (x, -P / 2, 0); sg.parent = pivot; ajoute(sg)
+    lid_r = ajoute(boite("bord_couv", (L + 0.06, P + 0.06, 0.1), (0, -P / 2, 0.05), accent, 0.03)); lid_r.parent = pivot
+    for x in (-1, 1):
+        g = ajoute(boite("coin_couv", (0.26, P + 0.08, 0.24), (x * (L / 2 - 0.05), -P / 2, 0.14), orm, 0.06)); g.parent = pivot
+    r2 = ajoute(boite("rune_couv", (1.0, 0.03, 0.04), (0, -P - 0.005, 0.3), rune, 0)); r2.parent = pivot
+    pivot.rotation_euler = (math.radians(-108 * ouverture), 0, 0)
+    # lumière qui sort + faisceau + couteau qui monte
+    if ouverture > 0:
+        lumiere("coeur", 'POINT', (0, 0, H + 0.2), 100 + 900 * ouverture, e["rune"])
+        bpy.ops.mesh.primitive_cone_add(vertices=48, radius1=0.95, radius2=1.8, depth=3.2, location=(0, 0, H + 1.6))
+        f = bpy.context.active_object
+        fm = bpy.data.materials.new("faisceau"); fm.use_nodes = True
+        nt = fm.node_tree; out = nt.nodes["Material Output"]
+        em = nt.nodes.new("ShaderNodeEmission"); em.inputs["Color"].default_value = (*e["rune"], 1); em.inputs["Strength"].default_value = 2.5 * ouverture
+        tr = nt.nodes.new("ShaderNodeBsdfTransparent")
+        tc = nt.nodes.new("ShaderNodeTexCoord"); sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+        ramp = nt.nodes.new("ShaderNodeValToRGB")
+        ramp.color_ramp.elements[0].color = (0.75, 0.75, 0.75, 1); ramp.color_ramp.elements[1].color = (1, 1, 1, 1)
+        mx = nt.nodes.new("ShaderNodeMixShader")
+        nt.links.new(tc.outputs["Generated"], sep.inputs[0]); nt.links.new(sep.outputs["Z"], ramp.inputs[0])
+        nt.links.new(ramp.outputs[0], mx.inputs[0]); nt.links.new(em.outputs[0], mx.inputs[1]); nt.links.new(tr.outputs[0], mx.inputs[2])
+        nt.links.new(mx.outputs[0], out.inputs["Surface"])
+        fm.blend_method = 'BLEND' if hasattr(fm, "blend_method") else None
+        f.data.materials.append(fm); f.visible_shadow = False
+        if ouverture > 0.45:
+            k = importer_couteau(e["couteau"], 2.4, sans_contour=True)
+            monte = (ouverture - 0.45) / 0.55
+            k.location = (0, 0, H - 1.2 + 2.0 * monte)
+            k.rotation_euler = (0, math.radians(14), math.radians(25 * monte))
+        random.seed(3)
+        etin = mat("etin", e["rune"], 0, 0.3, e["rune"], 25)
+        for i in range(int(22 * ouverture)):
+            a = random.uniform(0, 2 * math.pi); rr = random.uniform(0.3, 1.4)
+            bpy.ops.mesh.primitive_ico_sphere_add(radius=random.uniform(0.02, 0.05), subdivisions=1,
+                                                  location=(rr * math.cos(a), rr * math.sin(a) * 0.6, H + random.uniform(0.2, 2.6) * ouverture))
+            bpy.context.active_object.data.materials.append(etin)
+    return objs
+
+def coffre_scene(equipe, ouverture, res=768, angle=0.0, nom=None):
+    sc = scene_icone()
+    sc.render.resolution_x = sc.render.resolution_y = res
+    coffre(equipe, ouverture)
+    ambiance_icone((0, 0, 1.0), 1.25)
+    e = COFFRES[equipe]
+    lumiere("contre_equipe", 'AREA', (3.5, 4.5, 3.5), 900, e["rune"], 3, (0, 0, 1))
+    d = 7.6
+    a = math.radians(-32 + angle)
+    camera((d * math.sin(a), -d * math.cos(a), 4.6), (0, 0, 1.35 + 0.4 * ouverture), 50)
+    rendre(nom or ("coffre_%s" % equipe))
+
+def planche_sprites(prefixe, n, sortie, taille=256):
+    """Assemble n images <prefixe>_00.png… en planche 4x4 (1024 px) pour Roblox (ImageRectOffset)."""
+    from PIL import Image as PImage
+    cote = int(math.ceil(math.sqrt(n)))
+    planche = PImage.new("RGBA", (cote * taille, cote * taille), (0, 0, 0, 0))
+    for i in range(n):
+        im = PImage.open(os.path.join(SORTIE, "%s_%02d.png" % (prefixe, i))).convert("RGBA").resize((taille, taille), PImage.LANCZOS)
+        planche.paste(im, ((i % cote) * taille, (i // cote) * taille))
+    planche.save(os.path.join(SORTIE, sortie))
+
+def coffres_complets(equipes=None):
+    for eq in (equipes or COFFRES):
+        coffre_scene(eq, 0.0, 768, 0, "coffre_%s" % eq)                 # vitrine fermée
+        coffre_scene(eq, 1.0, 768, 0, "coffre_%s_ouvert" % eq)          # vitrine ouverte
+        for i in range(16):                                              # rotation sur lui-même
+            coffre_scene(eq, 0.0, 256, i * 360 / 16, "rot_%s_%02d" % (eq, i))
+        for i in range(16):                                              # ouverture (0 -> 1, avec accélération)
+            x = i / 15
+            coffre_scene(eq, x * x * (3 - 2 * x), 256, 0, "ouv_%s_%02d" % (eq, i))
+        planche_sprites("rot_%s" % eq, 16, "coffre_%s_rotation.png" % eq)
+        planche_sprites("ouv_%s" % eq, 16, "coffre_%s_ouverture.png" % eq)
+
 TOUT = {"caisses": lambda: [caisse(e) for e in EQUIPES], "pieces": lambda: [pieces(n) for n in (1, 2, 3)],
         "icones": lambda: (icone_engrenage(), icone_trophee(), icone_cadeau()),
-        "chargement": lambda: (fond_ciel(), avant_plan(), logo()), "ciel": fond_ciel, "avant": avant_plan, "logo": logo, "logo_scene": logo_scene, "eclats": eclats}
+        "chargement": lambda: (fond_ciel(), avant_plan(), logo()), "ciel": fond_ciel, "avant": avant_plan, "logo": logo, "logo_scene": logo_scene, "eclats": eclats,
+        "icones_ui": lambda: [f() for f in ICONES], "coffres": coffres_complets,
+        "coffre_test": lambda: (coffre_scene("Renards", 0.0, 512, 0, "test_ferme"), coffre_scene("Renards", 1.0, 512, 0, "test_ouvert"))}
 for k in (QUOI or TOUT.keys()):
     if k in TOUT: TOUT[k]()
     elif k in EQUIPES: caisse(k)

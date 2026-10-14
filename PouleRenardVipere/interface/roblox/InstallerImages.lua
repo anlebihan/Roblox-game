@@ -1,5 +1,5 @@
 --[[ À COLLER DANS LA BARRE DE COMMANDES de Studio, puis Entrée.        — TRIPLE HUNT —
-     Avant : importer toutes les images du dossier interface/images (Gestionnaire de ressources >
+     Avant : importer les images du dossier interface/images (Gestionnaire de ressources >
      « Importation groupée »), puis dans le Gestionnaire de ressources : sélectionner toutes ces images >
      clic droit > « Insérer » (Studio crée un Decal par image dans le Workspace, avec son ID).
      Ce script lit ces Decals et crée / met à jour le ModuleScript ReplicatedFirst.ImagesInterface
@@ -10,11 +10,17 @@ local RF = game:GetService("ReplicatedFirst")
 local SS = game:GetService("ServerStorage")
 local ids = {}
 local decals = {}
+-- reprend les IDs déjà enregistrés (on peut importer les images en plusieurs fois)
+local ancien = RF:FindFirstChild("ImagesInterface")
+if ancien then
+	local ok, t = pcall(function() return require(ancien:Clone()) end)
+	if ok and type(t) == "table" then for k, v in pairs(t) do ids[k] = v end end
+end
 for _, d in ipairs(workspace:GetDescendants()) do
 	if d:IsA("Decal") and d.Texture ~= "" then
 		local nom = d.Name:gsub("%.png$", "")
 		if nom:match("^chargement_") or nom:match("^fx_") or nom:match("^logo") or nom:match("^caisse_")
-			or nom:match("^pieces_") or nom:match("^icone_") or nom:match("^menu_") then
+			or nom:match("^pieces_") or nom:match("^icone_") or nom:match("^menu_") or nom:match("^couteau_") or nom:match("^skin_") or nom:match("^coffre_") then
 			ids[nom] = d.Texture
 			table.insert(decals, d)
 		end

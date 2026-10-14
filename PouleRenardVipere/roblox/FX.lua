@@ -13,6 +13,10 @@ local Config = require(script.Parent.Config)
 
 local FX = {}
 
+-- réglages du joueur (fenêtre Paramètres de l'interface) : moins d'effets / pas de secousses
+local joueurLocal = game:GetService("Players").LocalPlayer
+local function performance() return joueurLocal ~= nil and joueurLocal:GetAttribute("Param_Performance") == true end
+
 local TEX = {
 	etincelles = "rbxasset://textures/particles/sparkles_main.dds",
 	feu = "rbxasset://textures/particles/fire_main.dds",
@@ -45,6 +49,8 @@ local function son(id, parent, volume, hauteur)
 	s.Volume = volume or 0.6
 	s.PlaybackSpeed = (hauteur or 1) * (0.94 + math.random() * 0.12)
 	s.RollOffMaxDistance = 80
+	local groupe = game:GetService("SoundService"):FindFirstChild("Effets")   -- curseur « Effets sonores » des Paramètres
+	if groupe and groupe:IsA("SoundGroup") then s.SoundGroup = groupe end
 	s.Parent = parent
 	s:Play()
 	Debris:AddItem(s, 4)
@@ -81,7 +87,8 @@ end
 local function rafale(pos, opts, n)
 	local a = pointMonde(pos, 3)
 	local e = emetteur(a, opts)
-	e:Emit(n or 20)
+	n = n or 20
+	e:Emit(performance() and math.max(1, math.floor(n * 0.35)) or n)
 	return e
 end
 
@@ -124,6 +131,7 @@ end
 
 -- éclats (origami) : petits triangles qui volent
 local function eclats(pos, couleurs, n)
+	if performance() then n = math.max(1, math.floor(n * 0.3)) end
 	for i = 1, n do
 		local w = Instance.new("WedgePart")
 		w.Anchored, w.CanCollide, w.CanQuery, w.CanTouch, w.CastShadow = true, false, false, false, false
@@ -153,6 +161,7 @@ RunService:BindToRenderStep("CouteauxSecousse", Enum.RenderPriority.Camera.Value
 end)
 
 function FX.Secousse(force, duree)
+	if joueurLocal and joueurLocal:GetAttribute("Param_Secousses") == false then return end
 	secousseForce = math.max(force or 0.4, secousseForce * 0.5)
 	secousseFin = os.clock() + (duree or 0.25)
 end

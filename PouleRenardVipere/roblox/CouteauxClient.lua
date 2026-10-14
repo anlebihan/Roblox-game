@@ -78,6 +78,7 @@ local function attaquer(tool)
 	if joueur:GetAttribute("EnPrison") then return end
 	combo = (now - dernier < Config.Combat.FenetreCombo) and (combo % 3 + 1) or 1
 	dernier = now
+	joueur:SetAttribute("CouteauxCombo", combo)          -- lu par l'interface (« COMBO x2 »)
 	local hum = joueur.Character and joueur.Character:FindFirstChildOfClass("Humanoid")
 	local t = hum and piste(hum, "Coup" .. combo)
 	if t then t:Play(0.05) else animClassique(tool, combo) end
@@ -113,6 +114,8 @@ local function esquiver(_, etat)
 	local now = os.clock()
 	if now - derniereEsquive < Config.Esquive.Recharge then return Enum.ContextActionResult.Sink end
 	derniereEsquive = now
+	joueur:SetAttribute("EsquiveDebut", now)             -- lu par l'interface (recharge sur le bouton ESQUIVE)
+	joueur:SetAttribute("EsquiveRecharge", Config.Esquive.Recharge)
 
 	-- direction choisie par rapport à la CAMÉRA : gauche / droite = saut de côté,
 	-- arrière ou aucune touche = saut en arrière, avant = saut de côté (on n'esquive pas vers l'avant).
@@ -149,11 +152,33 @@ local function esquiver(_, etat)
 	return Enum.ContextActionResult.Sink
 end
 
-if Config.Esquive.Active then
-	ContextActionService:BindAction("CouteauxEsquive", esquiver, true, Config.Esquive.Touche, Config.Esquive.Manette)
-	ContextActionService:SetTitle("CouteauxEsquive", "ESQUIVE")
-	ContextActionService:SetPosition("CouteauxEsquive", UDim2.new(1, -170, 1, -150))
+-- touche choisie dans les Paramètres de l'interface (attribut « Param_ToucheEsquive » = nom du KeyCode)
+-- quand l'interface de jeu est là (attribut « InterfaceActive »), c'est elle qui affiche le bouton tactile
+local function lierEsquive()
+	if not Config.Esquive.Active then return end
+	local nom = joueur:GetAttribute("Param_ToucheEsquive")
+	local ok, touche = pcall(function() return nom and Enum.KeyCode[nom] end)
+	touche = (ok and touche) or Config.Esquive.Touche
+	ContextActionService:UnbindAction("CouteauxEsquive")
+	local boutonTactile = not joueur:GetAttribute("InterfaceActive")
+	ContextActionService:BindAction("CouteauxEsquive", esquiver, boutonTactile, touche, Config.Esquive.Manette)
+	if boutonTactile then
+		ContextActionService:SetTitle("CouteauxEsquive", "ESQUIVE")
+		ContextActionService:SetPosition("CouteauxEsquive", UDim2.new(1, -170, 1, -150))
+	end
 end
+lierEsquive()
+joueur:GetAttributeChangedSignal("Param_ToucheEsquive"):Connect(lierEsquive)
+joueur:GetAttributeChangedSignal("InterfaceActive"):Connect(lierEsquive)
+
+-- l'interface (bouton ESQUIVE tactile) demande une esquive
+local demande = Dossier:FindFirstChild("EsquiveDemande")
+if not demande then
+	demande = Instance.new("BindableEvent")
+	demande.Name = "EsquiveDemande"
+	demande.Parent = Dossier
+end
+demande.Event:Connect(function() esquiver(nil, Enum.UserInputState.Begin) end)
 
 ------------------------------------------------------------------ effets de TOUS les joueurs
 local function surveillerPerso(char, estMoi)
