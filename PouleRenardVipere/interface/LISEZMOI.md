@@ -11,8 +11,8 @@ Vidéo de l'animation : `apercu/apercu_chargement.mp4`.
 | 0,5 s | Le rocher monte depuis le bas | — |
 | 1,4 / 1,85 / 2,2 s | Les 3 couteaux géants tombent et **se plantent** : éclats de roche, fissure lumineuse, lueur de la couleur de l'équipe, ombre du couteau qui se forme, poussière, flash, secousse | sifflement + impact + grondement |
 | 2,6 s | Le titre **TRIPLE HUNT** arrive en rebondissant, puis un reflet passe dessus toutes les 4 s | tintement |
-| 3 s | Barre de chargement (dégradé aux couleurs des équipes, rayures qui défilent) + astuces écrites lettre par lettre | — |
-| Prêt | « PRÊT ! » puis le bouton **▶ JOUER** pulse (clic, Entrée ou bouton A de la manette) | tintement |
+| 3 s | Barre de chargement (dégradé aux couleurs des équipes, rayures qui défilent) + astuces écrites lettre par lettre (badge ASTUCE, noms d'équipes en couleur, sans emoji) | — |
+| Prêt | « PRÊT ! » puis le bouton **JOUER** pulse (clic, Entrée ou bouton A de la manette) | tintement |
 | Clic | Coup de lame qui tranche l'écran, flash, zoom et fondu vers le jeu | lame |
 
 Toujours présents : braises colorées qui montent, étoiles qui scintillent, parallaxe à la souris. La barre suit le **vrai** chargement (préchargement des images, sons, maillages, animations), avec une durée minimale de 7 s pour l'intro. Le bouton PASSER apparaît après 2,5 s.

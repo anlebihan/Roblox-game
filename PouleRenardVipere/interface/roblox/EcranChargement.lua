@@ -41,13 +41,16 @@ local SONS = {
 	Lame = "rbxasset://sounds/unsheath.wav",
 	Clic = "rbxasset://sounds/electronicpingshort.wav",
 }
+-- astuces en texte riche (pas d'emoji) : les équipes sont écrites dans leur couleur
+local P, R, V = '<font color="#FF5A3C">POULE</font>', '<font color="#FF8C1E">RENARD</font>', '<font color="#78F03C">VIPÈRE</font>'
+local function clef(txt) return '<font color="#FFD23F">' .. txt .. '</font>' end
 local ASTUCES = {
-	"Le 🦊 Renard attrape la 🐔 Poule, la Poule attrape la 🐍 Vipère, la Vipère attrape le Renard !",
-	"Appuie sur A pour esquiver : tu es invincible pendant le saut !",
-	"Touche un coéquipier en prison pour le libérer.",
+	"Le " .. R .. " attrape la " .. P .. ", la " .. P .. " attrape la " .. V .. ", la " .. V .. " attrape le " .. R .. ".",
+	"Appuie sur " .. clef("A") .. " pour esquiver : tu es invincible pendant le saut.",
+	"Touche un coéquipier en prison pour le " .. clef("libérer") .. ".",
 	"Dans ton camp, personne ne peut t'attraper.",
-	"Enchaîne 3 coups pour un estoc qui va plus loin.",
-	"Ouvre des caisses pour gagner des couteaux légendaires !",
+	"Enchaîne " .. clef("3 coups") .. " pour un estoc qui va plus loin.",
+	"Ouvre des " .. clef("caisses") .. " pour gagner des couteaux légendaires.",
 }
 do
 	local ok, liste = pcall(function() return require(ReplicatedFirst:WaitForChild("ImagesInterface", 2)) end)
@@ -173,9 +176,19 @@ local pct = new("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTranspare
 	Font = Enum.Font.LuckiestGuy, TextColor3 = Color3.new(1, 1, 1), ZIndex = 24 }, barreFond)
 new("UIStroke", { Thickness = 2.5, Color = Color3.new(0, 0, 0) }, pct)
 new("UIPadding", { PaddingTop = UDim.new(0.12, 0), PaddingBottom = UDim.new(0.08, 0) }, pct)
-local astuce = new("TextLabel", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0.55),
-	Size = UDim2.fromScale(1, 0.22), BackgroundTransparency = 1, Text = "", TextScaled = true, Font = Enum.Font.FredokaOne,
-	TextColor3 = Color3.fromRGB(235, 230, 255), ZIndex = 20, RichText = true }, bas)
+local ligneAstuce = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0.55),
+	Size = UDim2.fromScale(1.3, 0.24), BackgroundTransparency = 1, ZIndex = 20 }, bas)
+new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0.012, 0) }, ligneAstuce)
+local badge = new("TextLabel", { Size = UDim2.fromScale(0.13, 0.9), BackgroundColor3 = Color3.fromRGB(255, 200, 40), Text = "ASTUCE",
+	TextScaled = true, Font = Enum.Font.LuckiestGuy, TextColor3 = Color3.fromRGB(40, 20, 0), ZIndex = 21, LayoutOrder = 1 }, ligneAstuce)
+new("UICorner", { CornerRadius = UDim.new(0.35, 0) }, badge)
+new("UIStroke", { Thickness = 2.5, Color = Color3.fromRGB(8, 5, 18), ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, badge)
+new("UIPadding", { PaddingTop = UDim.new(0.2, 0), PaddingBottom = UDim.new(0.08, 0), PaddingLeft = UDim.new(0.08, 0),
+	PaddingRight = UDim.new(0.08, 0) }, badge)
+local astuce = new("TextLabel", { Size = UDim2.fromScale(0.85, 1), BackgroundTransparency = 1, Text = "", TextScaled = true,
+	Font = Enum.Font.FredokaOne, TextColor3 = Color3.fromRGB(235, 230, 255), ZIndex = 20, RichText = true, LayoutOrder = 2,
+	TextXAlignment = Enum.TextXAlignment.Left }, ligneAstuce)
 new("UIStroke", { Thickness = 2, Color = Color3.new(0, 0, 0) }, astuce)
 local etat = new("TextLabel", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(0.5, 0.1),
 	Size = UDim2.fromScale(0.6, 0.2), BackgroundTransparency = 1, Text = "CHARGEMENT DE LA VALLÉE…", TextScaled = true,
@@ -190,13 +203,13 @@ new("UIAspectRatioConstraint", { AspectRatio = 3.2 }, jouer)
 new("UICorner", { CornerRadius = UDim.new(0.3, 0) }, jouer)
 new("UIStroke", { Thickness = 5, Color = Color3.fromRGB(8, 5, 18), ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, jouer)
 new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(130, 255, 120), Color3.fromRGB(30, 170, 70)) }, jouer)
-local jouerTexte = new("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "▶ JOUER",
+local jouerTexte = new("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "JOUER",
 	TextScaled = true, Font = Enum.Font.LuckiestGuy, TextColor3 = Color3.new(1, 1, 1), ZIndex = 31 }, jouer)
 new("UIPadding", { PaddingTop = UDim.new(0.2, 0), PaddingBottom = UDim.new(0.1, 0) }, jouerTexte)
 new("UIStroke", { Thickness = 3, Color = Color3.new(0, 0, 0) }, jouerTexte)
 local jouerEchelle = new("UIScale", { Scale = 0 }, jouer)
 local passer = new("TextButton", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -20),
-	Size = UDim2.fromOffset(150, 46), BackgroundColor3 = Color3.fromRGB(90, 96, 120), Text = "PASSER ⏭", TextScaled = true,
+	Size = UDim2.fromOffset(150, 46), BackgroundColor3 = Color3.fromRGB(90, 96, 120), Text = "PASSER", TextScaled = true,
 	Font = Enum.Font.LuckiestGuy, TextColor3 = Color3.new(1, 1, 1), Visible = false, ZIndex = 30, AutoButtonColor = true }, noir)
 new("UICorner", { CornerRadius = UDim.new(0.3, 0) }, passer)
 new("UIStroke", { Thickness = 4, Color = Color3.fromRGB(8, 5, 18), ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, passer)
@@ -481,7 +494,7 @@ connexion = RunService.RenderStepped:Connect(function(dt)
 		if astuceIndex == 0 or t - astuceDebut > 5 then
 			astuceIndex = astuceIndex % #ASTUCES + 1
 			astuceDebut = t
-			astuce.Text = "💡 " .. ASTUCES[astuceIndex]
+			astuce.Text = ASTUCES[astuceIndex]
 		end
 		astuce.MaxVisibleGraphemes = math.floor((t - astuceDebut) * 45)
 	end
